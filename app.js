@@ -187,7 +187,7 @@ function docNumber(prefix='PREV'){
 function pdfPageHeader(title, number, date, pageLabel=''){
   return `<div class="pdf-page-header">
     <div class="pdf-company">
-      <img class="pdf-logo" src="assets/abilart-logo.png" alt="Abilart Srls" width="150" height="80">
+      <img class="pdf-logo" src="assets/abilart-logo.png" alt="Abilart Srls">
       <div class="pdf-company-meta">Sede Legale: Lissone (MB) &nbsp;|&nbsp; Michele, Il tuo Tecnico</div>
     </div>
     <div class="pdf-meta">

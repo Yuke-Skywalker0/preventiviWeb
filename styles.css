@@ -65,7 +65,19 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-page:last-child{page-break-after:auto;break-after:auto}
 .pdf-page-header{height:108px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0a789e;padding-bottom:12px}
 .pdf-company{padding-top:0;min-width:0;display:flex;flex-direction:column;align-items:flex-start}
-.pdf-logo{width:150px;height:auto;max-height:68px;object-fit:contain;object-position:left center;display:block;flex:0 0 auto}
+.pdf-logo{
+    width:150px !important;
+    height:auto !important;
+    max-width:150px !important;
+    max-height:68px !important;
+    min-width:0 !important;
+    min-height:0 !important;
+    object-fit:contain !important;
+    object-position:left center !important;
+    display:block !important;
+    flex:0 0 auto !important;
+    aspect-ratio:auto !important;
+}
 .pdf-sub{display:none}
 .pdf-company-meta{font-size:7.5px;color:#6d7880;margin-top:7px;white-space:nowrap}
 .pdf-meta{width:162px;border:1px solid #d8e1e6;background:#f7fafb;padding:10px 12px;text-align:right;font-size:8px;color:#69767e;line-height:1.35;border-radius:2px}

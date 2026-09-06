@@ -97,6 +97,7 @@
           <button type="button" data-editor="service-editor" data-cmd="insertUnorderedList" title="Elenco">•</button>
           <button type="button" data-editor="service-editor" data-cmd="foreColor" data-color="#0073aa" title="Blu">A</button>
           <button type="button" data-editor="service-editor" data-cmd="foreColor" data-color="#c62828" title="Rosso">A</button>
+          <button type="button" data-editor="service-editor" data-cmd="foreColor" data-color="#000000" title="Nero">A</button>
           <button type="button" data-editor="service-editor" data-cmd="removeFormat" title="Pulisci">Tx</button>
         </div>
         <div id="service-editor" class="rich-editor" contenteditable="true" data-placeholder="Descrivi brevemente il lavoro da eseguire..."></div>
@@ -216,6 +217,7 @@
           <button type="button" data-editor="edile-editor" data-cmd="insertUnorderedList">•</button>
           <button type="button" data-editor="edile-editor" data-cmd="foreColor" data-color="#0073aa">A</button>
           <button type="button" data-editor="edile-editor" data-cmd="foreColor" data-color="#c62828">A</button>
+          <button type="button" data-editor="edile-editor" data-cmd="foreColor" data-color="#000000" title="Nero">A</button>
           <button type="button" data-editor="edile-editor" data-cmd="removeFormat">Tx</button>
         </div>
         <div id="edile-editor" class="rich-editor large" contenteditable="true" data-placeholder="Descrivi in dettaglio lavorazioni, materiali, note operative, eventuali esclusioni..."></div>
@@ -298,8 +300,9 @@
 
 <footer class="site-footer">Abilart Srls · Soluzioni Artigiane d'Eccellenza · Lissone (MB)</footer>
 
-<!-- PDF engine: loaded from jsDelivr. No WordPress/CF7 dependency. -->
-<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<!-- PDF engine: html2canvas + jsPDF. No WordPress/CF7 dependency. -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

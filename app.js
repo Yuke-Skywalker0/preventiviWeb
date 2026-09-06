@@ -178,45 +178,101 @@ function requiredCheck(form){
   return true;
 }
 
-function pdfBase(title, number, date){
-  return `<div class="pdf-document">
-    <div class="pdf-header">
-      <div><div class="pdf-brand">ABILART SRLS</div><div class="pdf-sub">Soluzioni Artigiane d'Eccellenza</div></div>
-      <div class="pdf-meta"><span>DOCUMENTO NUMERO</span><strong>${escapeHtml(number)}</strong><span>DATA: ${escapeHtml(date)}</span></div>
+function docNumber(prefix='PREV'){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `${prefix}-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function pdfPageHeader(title, number, date, pageLabel=''){
+  return `<div class="pdf-page-header">
+    <div class="pdf-company">
+      <img class="pdf-logo" src="assets/abilart-logo.png" alt="Abilart Srls">
+      <div class="pdf-company-meta">Sede Legale: Lissone (MB) &nbsp;|&nbsp; Michele, Il tuo Tecnico</div>
     </div>
-    <div style="margin-top:8px;font-size:8.5px;color:#68757d">Sede Legale: Lissone (MB) · Michele, Il tuo Tecnico</div>
-    <div class="pdf-section"><div class="pdf-title">${escapeHtml(title)}</div>`;
+    <div class="pdf-meta">
+      <span>DOCUMENTO NUMERO</span>
+      <strong>${escapeHtml(number)}</strong>
+      <span>DATA: ${escapeHtml(date)}</span>
+      ${pageLabel?`<em>${escapeHtml(pageLabel)}</em>`:''}
+    </div>
+  </div>
+  ${pageLabel?`<div class="pdf-doc-type">${escapeHtml(title)}</div>`:''}`;
 }
 
-function pdfClientTable(data){
-  return `<div class="pdf-box"><table class="pdf-data">
-    <tr><td width="50%"><span class="pdf-label">Nome e Cognome</span><strong>${escapeHtml(data.name)}</strong></td><td width="50%"><span class="pdf-label">C.F. / P.IVA</span>${escapeHtml(data.tax)}</td></tr>
-    <tr><td><span class="pdf-label">Indirizzo</span>${escapeHtml(data.address)}, ${escapeHtml(data.zip)} ${escapeHtml(data.city)}</td><td><span class="pdf-label">Contatti</span>${escapeHtml(data.phone)} · ${escapeHtml(data.email)}</td></tr>
-    ${data.reference!==undefined?`<tr><td colspan="2"><span class="pdf-label">Riferimento cantiere / interno / scala</span>${escapeHtml(data.reference||'—')}</td></tr>`:''}
-  </table></div>`;
+function pdfSectionTitle(title){
+  return `<div class="pdf-title">${escapeHtml(title)}</div>`;
 }
 
-function pdfDescription(html){return `<div class="pdf-box" style="min-height:100px;font-size:9px;line-height:1.55">${html}</div>`}
+function pdfClientBox(data){
+  return `<div class="pdf-box">
+    <table class="pdf-data">
+      <tr>
+        <td><span class="pdf-label">NOME E COGNOME</span><strong>${escapeHtml(data.name||'—')}</strong></td>
+        <td><span class="pdf-label">CODICE FISCALE / PARTITA IVA</span>${escapeHtml(data.tax||'—')}</td>
+      </tr>
+      <tr>
+        <td><span class="pdf-label">INDIRIZZO</span>${escapeHtml(data.address||'—')}${data.zip||data.city?`, ${escapeHtml(data.zip||'')} ${escapeHtml(data.city||'')}`:''}</td>
+        <td><span class="pdf-label">CONTATTI</span>${escapeHtml(data.phone||'—')} &nbsp;|&nbsp; ${escapeHtml(data.email||'—')}</td>
+      </tr>
+      ${data.reference!==undefined?`<tr><td colspan="2"><span class="pdf-label">RIFERIMENTO CANTIERE / INTERNO / SCALA</span>${escapeHtml(data.reference||'—')}</td></tr>`:''}
+    </table>
+  </div>`;
+}
+
+function pdfDescription(html){
+  return `<div class="pdf-box pdf-description">${html}</div>`;
+}
 
 function pdfEconomy(base,discount,dep,ivaP){
   const net=Math.max(0,base-discount), iva=net*ivaP/100, total=net+iva, balance=Math.max(0,total-dep);
-  return `<table class="pdf-money">
-    <tr><td>Imponibile</td><td align="right">${euro(base)}</td></tr>
-    ${discount>0?`<tr><td>Sconto</td><td align="right">− ${euro(discount)}</td></tr>`:''}
-    <tr><td>Imponibile netto</td><td align="right">${euro(net)}</td></tr>
-    <tr><td>IVA ${escapeHtml(ivaP)}%</td><td align="right">${euro(iva)}</td></tr>
-    <tr><td>Acconto</td><td align="right">${euro(dep)}</td></tr>
-    <tr class="pdf-total"><td>TOTALE COMPLESSIVO</td><td align="right">${euro(total)}</td></tr>
-    <tr><td><strong>Saldo residuo</strong></td><td align="right"><strong>${euro(balance)}</strong></td></tr>
-  </table>`;
+  return `<div class="pdf-economy">
+    <table class="pdf-money">
+      <tr><td>Imponibile</td><td>${euro(base)}</td></tr>
+      ${discount>0?`<tr><td>Sconto</td><td>− ${euro(discount)}</td></tr>`:''}
+      <tr><td>Imponibile netto</td><td>${euro(net)}</td></tr>
+      <tr><td>Imposta sul valore aggiunto</td><td>${escapeHtml(ivaP)}% &nbsp;&nbsp; ${euro(iva)}</td></tr>
+      <tr><td>Acconto</td><td>${euro(dep)}</td></tr>
+      <tr class="pdf-total"><td>TOTALE</td><td>${euro(total)}</td></tr>
+      <tr class="pdf-balance"><td>Saldo residuo</td><td>${euro(balance)}</td></tr>
+    </table>
+  </div>`;
 }
 
 function signatureImg(data){
-  return data ? `<img src="${data}" alt="Firma cliente">` : '';
+  return data ? `<img src="${data}" alt="Firma cliente">` : '<div class="pdf-sign-line"></div>';
 }
 
-const serviceTermsHTML = document.querySelector('#service-form .terms-box').innerHTML;
-const edileTermsHTML = document.querySelector('#edile-form .terms-box').innerHTML;
+function pdfFooter(){
+  return `<div class="pdf-footer">
+    <a href="tel:+393204295445">+39 320 429 5445</a>
+    <span class="pdf-footer-sep"></span>
+    <a href="mailto:abilart.impresaedile@gmail.com">abilart.impresaedile@gmail.com</a>
+    <span class="pdf-footer-sep"></span>
+    <a href="https://impresaedileabilart.com/">impresaedileabilart.com</a>
+    <span class="pdf-footer-sep"></span>
+    <a href="https://idraulicoservizi.com/">idraulicoservizi.com</a>
+    <span class="pdf-footer-copy">© ${new Date().getFullYear()} Abilart Srls</span>
+  </div>`;
+}
+
+function pdfPage(content, number, date, title, pageLabel=''){
+  return `<section class="pdf-page">
+    ${pdfPageHeader(title,number,date,pageLabel)}
+    <div class="pdf-page-body">${content}</div>
+    ${pdfFooter()}
+  </section>`;
+}
+
+function getTermsHTML(source){
+  const ol=source.querySelector('ol');
+  if(!ol) return [];
+  return [...ol.children].map((li,i)=>`<li>${li.innerHTML}</li>`);
+}
+
+function termsBlock(items){
+  return `<div class="pdf-terms-box"><ol start="${items.start||1}">${items.html.join('')}</ol></div>`;
+}
 
 function buildServicePDF(){
   const d={
@@ -224,69 +280,157 @@ function buildServicePDF(){
     phone:$('#s-phone').value,email:$('#s-email').value,tax:$('#s-tax').value
   };
   const base=numberIT($('#s-price').value), dep=numberIT($('#s-deposit').value), ivaP=numberIT($('#s-iva').value);
-  const number='PREV-'+new Date().toISOString().slice(0,10);
-  const date=dateIT($('#s-date').value);
-  const desc=cleanEditorHtml($('#service-editor'));
-  return pdfBase('PREVENTIVO / CONTRATTO',number,date)+`
-    ${pdfClientTable(d)}
-    <div class="pdf-section"><div class="pdf-title">DATI DELL'INTERVENTO</div><div class="pdf-box"><table class="pdf-data">
-      <tr><td width="50%"><span class="pdf-label">Categoria</span>${escapeHtml($('#s-category').value)}</td><td width="50%"><span class="pdf-label">Data intervento</span>${escapeHtml(date)}</td></tr>
-    </table></div></div>
-    <div class="pdf-section"><div class="pdf-title">OGGETTO DELLA PRESTAZIONE D'OPERA</div>${pdfDescription(desc)}</div>
-    <div class="pdf-section"><div class="pdf-title">RIEPILOGO ECONOMICO</div><div class="pdf-box">${pdfEconomy(base,0,dep,ivaP)}</div></div>
-    <div class="pdf-section"><div class="pdf-title">CONDIZIONI GENERALI DI FORNITURA</div><div class="pdf-box pdf-terms">${serviceTermsHTML}</div></div>
+  const number=docNumber('PREV'), date=dateIT($('#s-date').value), desc=cleanEditorHtml($('#service-editor'));
+  const terms=getTermsHTML(document.querySelector('#service-form .terms-box'));
+  const p1=`
+    ${pdfSectionTitle('DATI DEL COMMITTENTE')}
+    ${pdfClientBox(d)}
+    ${pdfSectionTitle("DATI DELL'INTERVENTO")}
+    <div class="pdf-box"><table class="pdf-data"><tr><td><span class="pdf-label">CATEGORIA INTERVENTO</span>${escapeHtml($('#s-category').value||'—')}</td><td><span class="pdf-label">DATA INTERVENTO</span>${escapeHtml(date||'—')}</td></tr></table></div>
+    ${pdfSectionTitle("OGGETTO DELLA PRESTAZIONE D'OPERA")}
+    ${pdfDescription(desc)}
+    ${pdfSectionTitle('RIEPILOGO ECONOMICO')}
+    ${pdfEconomy(base,0,dep,ivaP)}
+  `;
+  const p2=`
+    ${pdfSectionTitle('CONDIZIONI GENERALI DI FORNITURA')}
+    <div class="pdf-terms-box"><ol>${terms.map(x=>x).join('')}</ol></div>
+    <div class="pdf-acceptance">Il committente dichiara di aver letto e accettato integralmente le condizioni sopra riportate.</div>
     <div class="pdf-signatures">
-      <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><br><br><strong>Michele (Abilart Srls)</strong><br><span>Documento predisposto digitalmente</span></div>
-      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span>Data: ${escapeHtml(date)}</span></div>
+      <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><div class="pdf-sign-space"></div><strong>Michele (Abilart Srls)</strong><small>Documento predisposto digitalmente</small></div>
+      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span class="pdf-sign-date">Data: ${escapeHtml(date||'—')}</span></div>
     </div>
-    <div class="pdf-footer">Abilart Srls · Lissone (MB) · idraulicoservizi.com · Documento generato digitalmente</div>
-  </div>`;
+  `;
+  return `<div class="pdf-document">${pdfPage(p1,number,date,'PREVENTIVO / CONTRATTO','PAGINA 1 / 2')}${pdfPage(p2,number,date,'PREVENTIVO / CONTRATTO','PAGINA 2 / 2')}</div>`;
 }
 
 function buildEdilePDF(){
   const d={name:$('#e-name').value,address:$('#e-address').value,zip:$('#e-zip').value,city:$('#e-city').value,phone:$('#e-phone').value,email:$('#e-email').value,tax:$('#e-tax').value,reference:$('#e-reference').value};
   const base=numberIT($('#e-price').value), discount=Math.min(Math.max(0,numberIT($('#e-discount').value)),base), dep=Math.max(0,numberIT($('#e-deposit').value)), ivaP=numberIT($('#e-iva').value);
-  const number='PREV-EDILE-'+new Date().toISOString().slice(0,10), date=dateIT($('#e-date').value), desc=cleanEditorHtml($('#edile-editor'));
+  const number=docNumber('PREV-EDILE'), date=dateIT($('#e-date').value), desc=cleanEditorHtml($('#edile-editor'));
   const rows=getRows();
-  const rowsHTML=rows.length?rows.map(r=>`<tr><td>${escapeHtml(r.voce)}</td><td>${escapeHtml(r.descrizione)}</td><td align="center">${escapeHtml(r.quantita)}</td><td align="center">${escapeHtml(r.unita)}</td><td align="right">${euro(r.prezzo)}</td><td align="right">${euro(r.totale)}</td></tr>`).join(''):`<tr><td colspan="6" align="center">Nessuna lavorazione dettagliata inserita.</td></tr>`;
+  const rowsHTML=rows.length?rows.map(r=>`<tr><td>${escapeHtml(r.voce||'—')}</td><td>${escapeHtml(r.descrizione||'—')}</td><td class="center">${escapeHtml(r.quantita)}</td><td class="center">${escapeHtml(r.unita)}</td><td class="right">${euro(r.prezzo)}</td><td class="right">${euro(r.totale)}</td></tr>`).join(''):`<tr><td colspan="6" class="center muted">Nessuna lavorazione dettagliata inserita.</td></tr>`;
   const tableSubtotal=rows.reduce((s,r)=>s+r.totale,0);
-  return pdfBase('PREVENTIVO EDILE',number,date)+`
-    ${pdfClientTable(d)}
-    <div class="pdf-section"><div class="pdf-title">DATI INTERVENTO / PREVENTIVO</div><div class="pdf-box"><table class="pdf-data">
-      <tr><td width="33%"><span class="pdf-label">Categoria</span>${escapeHtml($('#e-category').value)}</td><td width="33%"><span class="pdf-label">Tipologia lavoro</span>${escapeHtml($('#e-type').value)}</td><td width="34%"><span class="pdf-label">Data</span>${escapeHtml(date)}</td></tr>
-      <tr><td><span class="pdf-label">Superficie indicativa</span>${escapeHtml($('#e-area').value||'—')} mq</td><td><span class="pdf-label">Durata stimata</span>${escapeHtml($('#e-duration').value||'—')}</td><td><span class="pdf-label">Urgenza</span>${escapeHtml($('#e-urgency').value)}</td></tr>
-    </table></div></div>
-    <div class="pdf-section"><div class="pdf-title">OGGETTO DELLA PRESTAZIONE D'OPERA</div>${pdfDescription(desc)}</div>
-    <div class="pdf-section"><div class="pdf-title">DETTAGLIO VOCI DI PREVENTIVO</div><table class="pdf-table"><thead><tr><th>Voce</th><th>Descrizione</th><th>Qtà</th><th>Unità</th><th>Prezzo unitario</th><th>Totale</th></tr></thead><tbody>${rowsHTML}</tbody></table><div style="text-align:right;font-size:9px;margin-top:7px"><strong>Subtotale lavorazioni: ${euro(tableSubtotal)}</strong></div></div>
-    <div class="pdf-section"><div class="pdf-title">RIEPILOGO ECONOMICO</div><div class="pdf-box">${pdfEconomy(base,discount,dep,ivaP)}<div style="font-size:8px;color:#68757d;margin-top:7px">Metodo di pagamento: ${escapeHtml($('#e-payment').value)} · Validità: ${escapeHtml($('#e-validity').value||'—')}</div></div></div>
-    <div class="pdf-section"><div class="pdf-title">CONDIZIONI GENERALI DI CONTRATTO</div><div class="pdf-box pdf-terms">${edileTermsHTML}</div></div>
-    <div class="pdf-signatures">
-      <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><br><br><strong>Michele (Abilart Srls)</strong><br><span>Documento predisposto digitalmente</span></div>
-      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['e-signature'].data())}<span>Data: ${escapeHtml(date)}</span></div>
+  const terms=getTermsHTML(document.querySelector('#edile-form .terms-box'));
+  const terms1=terms.slice(0,8), terms2=terms.slice(8);
+  const p1=`
+    ${pdfSectionTitle('DATI DEL COMMITTENTE')}
+    ${pdfClientBox(d)}
+    ${pdfSectionTitle('DATI INTERVENTO / PREVENTIVO')}
+    <div class="pdf-box"><table class="pdf-data">
+      <tr><td><span class="pdf-label">CATEGORIA</span>${escapeHtml($('#e-category').value||'—')}</td><td><span class="pdf-label">TIPOLOGIA LAVORO</span>${escapeHtml($('#e-type').value||'—')}</td><td><span class="pdf-label">DATA</span>${escapeHtml(date||'—')}</td></tr>
+      <tr><td><span class="pdf-label">SUPERFICIE INDICATIVA</span>${escapeHtml($('#e-area').value||'—')} mq</td><td><span class="pdf-label">DURATA STIMATA</span>${escapeHtml($('#e-duration').value||'—')}</td><td><span class="pdf-label">URGENZA</span>${escapeHtml($('#e-urgency').value||'—')}</td></tr>
+    </table></div>
+    ${pdfSectionTitle("OGGETTO DELLA PRESTAZIONE D'OPERA")}
+    ${pdfDescription(desc)}
+    ${pdfSectionTitle('DETTAGLIO VOCI DI PREVENTIVO')}
+    <table class="pdf-table"><thead><tr><th>Voce</th><th>Descrizione</th><th>Qtà</th><th>Unità</th><th>Prezzo unitario</th><th>Totale</th></tr></thead><tbody>${rowsHTML}</tbody></table>
+    <div class="pdf-table-subtotal"><span>Subtotale lavorazioni</span><strong>${euro(tableSubtotal)}</strong></div>
+  `;
+  const p2=`
+    ${pdfSectionTitle('RIEPILOGO ECONOMICO')}
+    ${pdfEconomy(base,discount,dep,ivaP)}
+    <div class="pdf-payment"><div><span>METODO DI PAGAMENTO</span><strong>${escapeHtml($('#e-payment').value||'—')}</strong></div><div><span>VALIDITÀ DEL PREVENTIVO</span><strong>${escapeHtml($('#e-validity').value||'—')}</strong></div></div>
+    ${pdfSectionTitle('CONDIZIONI GENERALI DI CONTRATTO')}
+    <div class="pdf-terms-grid">
+      <div class="pdf-terms-column"><ol>${terms1.slice(0,4).join('')}</ol></div>
+      <div class="pdf-terms-column"><ol start="5">${terms1.slice(4,8).join('')}</ol></div>
     </div>
-    <div class="pdf-footer">Abilart Srls · Lissone (MB) · idraulicoservizi.com · Documento generato digitalmente</div>
-  </div>`;
+  `;
+  const p3=`
+    ${pdfSectionTitle('CONDIZIONI GENERALI DI CONTRATTO — SEGUE')}
+    <div class="pdf-terms-grid">
+      <div class="pdf-terms-column"><ol start="9">${terms2.slice(0,2).join('')}</ol></div>
+      <div class="pdf-terms-column"><ol start="11">${terms2.slice(2).join('')}</ol></div>
+    </div>
+    <div class="pdf-acceptance">Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile, il committente dichiara di aver letto e approvato specificamente le clausole relative a corrispettivi, varianti, responsabilità, tempi di esecuzione, foro competente e trattamento dei dati personali.</div>
+    <div class="pdf-signatures">
+      <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><div class="pdf-sign-space"></div><strong>Michele (Abilart Srls)</strong><small>Documento firmato digitalmente</small></div>
+      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['e-signature'].data())}<span class="pdf-sign-date">Data: ${escapeHtml(date||'—')}</span></div>
+    </div>
+  `;
+  return `<div class="pdf-document">${pdfPage(p1,number,date,'PREVENTIVO EDILE','PAGINA 1 / 3')}${pdfPage(p2,number,date,'PREVENTIVO EDILE','PAGINA 2 / 3')}${pdfPage(p3,number,date,'PREVENTIVO EDILE','PAGINA 3 / 3')}</div>`;
 }
 
 async function downloadPDF(html, filename){
-  if(typeof html2pdf==='undefined'){
+  if(typeof html2canvas==='undefined' || typeof window.jspdf==='undefined' || typeof window.jspdf.jsPDF==='undefined'){
     alert('Il motore PDF non è stato caricato. Controlla la connessione Internet e ricarica la pagina.');
     return;
   }
+
   const holder=document.createElement('div');
-  holder.style.position='fixed'; holder.style.left='-100000px'; holder.style.top='0'; holder.style.width='794px'; holder.style.background='#fff';
-  holder.innerHTML=html; document.body.appendChild(holder);
-  const element=holder.firstElementChild;
-  const options={
-    margin:[8,8,8,8],
-    filename,
-    image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false},
-    jsPDF:{unit:'mm',format:'a4',orientation:'portrait',compress:true},
-    pagebreak:{mode:['css','legacy']}
-  };
-  try{ await html2pdf().set(options).from(element).save(); }
-  finally{ holder.remove(); }
+  holder.className='pdf-render-host';
+  holder.innerHTML=html;
+  document.body.appendChild(holder);
+  document.body.classList.add('pdf-rendering');
+
+  const pages=[...holder.querySelectorAll('.pdf-page')];
+  if(!pages.length){
+    document.body.classList.remove('pdf-rendering');
+    holder.remove();
+    alert('Nessuna pagina PDF da generare.');
+    return;
+  }
+
+  try{
+    // Render each already-designed A4 page independently. This avoids the
+    // automatic scaling/reflow performed by html2pdf and keeps the document
+    // perfectly centered at 100% of the A4 page width.
+    const { jsPDF } = window.jspdf;
+    const pdf=new jsPDF({
+      unit:'mm',
+      format:'a4',
+      orientation:'portrait',
+      compress:true,
+      putOnlyUsedFonts:true
+    });
+
+    for(let i=0;i<pages.length;i++){
+      const page=pages[i];
+
+      // Make absolutely sure the page has the exact CSS pixel dimensions used
+      // by the PDF template before taking the screenshot.
+      page.style.width='794px';
+      page.style.height='1123px';
+      page.style.margin='0';
+      page.style.transform='none';
+
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const canvas=await html2canvas(page,{
+        width:794,
+        height:1123,
+        windowWidth:794,
+        windowHeight:1123,
+        scale:2,
+        useCORS:true,
+        allowTaint:true,
+        backgroundColor:'#ffffff',
+        logging:false,
+        scrollX:0,
+        scrollY:0,
+        imageTimeout:15000
+      });
+
+      if(i>0) pdf.addPage('a4','portrait');
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');
+
+      // PDF annotations make the contact details genuinely clickable.
+      const linkY = 282.5, linkH = 6;
+      pdf.link(13, linkY, 39, linkH, { url: 'tel:+393204295445' });
+      pdf.link(52, linkY, 58, linkH, { url: 'mailto:abilart.impresaedile@gmail.com' });
+      pdf.link(111, linkY, 40, linkH, { url: 'https://impresaedileabilart.com/' });
+      pdf.link(152, linkY, 40, linkH, { url: 'https://idraulicoservizi.com/' });
+    }
+
+    pdf.save(filename);
+  }catch(err){
+    console.error('Errore generazione PDF:',err);
+    alert('Errore durante la generazione del PDF. Riprova dopo aver ricaricato la pagina.');
+  }finally{
+    document.body.classList.remove('pdf-rendering');
+    holder.remove();
+  }
 }
 
 $('#service-form').addEventListener('submit',async e=>{

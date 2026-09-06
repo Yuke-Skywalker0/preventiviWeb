@@ -77,3 +77,20 @@ Le condizioni contrattuali incluse nel progetto sono quelle fornite nella config
 ## Dominio
 
 Il progetto può essere successivamente collegato a un dominio personalizzato tramite GitHub Pages.
+
+
+## PDF definitivo
+
+La generazione PDF usa un template A4 dedicato, separato dalla grafica del modulo. Il documento viene composto in pagine fisse A4 per mantenere allineamento, margini, tabelle, condizioni e firme.
+
+Il template riprende lo stile professionale Abilart: intestazione, numero documento/data, box cliente, sezioni azzurre, riepilogo economico con totale evidenziato, condizioni, firme e footer.
+
+Il numero documento viene generato con data e ora fino ai secondi per evitare collisioni tra più preventivi creati nello stesso giorno.
+
+Il pulsante **Nero** è disponibile nell'editor del testo insieme a grassetto, sottolineato, elenco, blu, rosso e pulizia formattazione.
+
+### Contatti e siti presenti nei PDF
+- Telefono: +39 320 429 5445
+- Email: abilart.impresaedile@gmail.com
+- Sito: https://impresaedileabilart.com/
+- Sito: https://idraulicoservizi.com/

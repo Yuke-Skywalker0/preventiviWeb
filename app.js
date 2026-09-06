@@ -187,7 +187,7 @@ function docNumber(prefix='PREV'){
 function pdfPageHeader(title, number, date, pageLabel=''){
   return `<div class="pdf-page-header">
     <div class="pdf-company">
-      <img class="pdf-logo" src="assets/abilart-logo.png" alt="Abilart Srls">
+      <img class="pdf-logo" src="assets/abilart-logo.png" alt="Abilart Srls" width="150" height="80">
       <div class="pdf-company-meta">Sede Legale: Lissone (MB) &nbsp;|&nbsp; Michele, Il tuo Tecnico</div>
     </div>
     <div class="pdf-meta">
@@ -245,14 +245,19 @@ function signatureImg(data){
 
 function pdfFooter(){
   return `<div class="pdf-footer">
-    <a href="tel:+393204295445">+39 320 429 5445</a>
-    <span class="pdf-footer-sep"></span>
-    <a href="mailto:abilart.impresaedile@gmail.com">abilart.impresaedile@gmail.com</a>
-    <span class="pdf-footer-sep"></span>
-    <a href="https://impresaedileabilart.com/">impresaedileabilart.com</a>
-    <span class="pdf-footer-sep"></span>
-    <a href="https://idraulicoservizi.com/">idraulicoservizi.com</a>
-    <span class="pdf-footer-copy">© ${new Date().getFullYear()} Abilart Srls</span>
+    <div class="pdf-footer-brand">
+      <strong>ABILART SRLS</strong>
+      <span>Soluzioni Artigiane d'Eccellenza</span>
+    </div>
+    <div class="pdf-footer-contact">
+      <a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a>
+      <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a>
+    </div>
+    <div class="pdf-footer-sites">
+      <a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a>
+      <a href="https://idraulicoservizi.com/" data-pdf-link="site2">idraulicoservizi.com</a>
+    </div>
+    <span class="pdf-footer-copy">© ${new Date().getFullYear()}</span>
   </div>`;
 }
 
@@ -415,12 +420,13 @@ async function downloadPDF(html, filename){
       if(i>0) pdf.addPage('a4','portrait');
       pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');
 
-      // PDF annotations make the contact details genuinely clickable.
-      const linkY = 282.5, linkH = 6;
-      pdf.link(13, linkY, 39, linkH, { url: 'tel:+393204295445' });
-      pdf.link(52, linkY, 58, linkH, { url: 'mailto:abilart.impresaedile@gmail.com' });
-      pdf.link(111, linkY, 40, linkH, { url: 'https://impresaedileabilart.com/' });
-      pdf.link(152, linkY, 40, linkH, { url: 'https://idraulicoservizi.com/' });
+      // Real PDF annotations over the footer text.
+      // Coordinates are aligned to the A4 footer layout above.
+      const fy = 282.6, fh = 7.0;
+      pdf.link(50,  fy, 40, fh, { url: 'tel:+393204295445' });
+      pdf.link(92,  fy, 58, fh, { url: 'mailto:abilart.impresaedile@gmail.com' });
+      pdf.link(151, fy, 29, fh, { url: 'https://impresaedileabilart.com/' });
+      pdf.link(181, fy, 22, fh, { url: 'https://idraulicoservizi.com/' });
     }
 
     pdf.save(filename);

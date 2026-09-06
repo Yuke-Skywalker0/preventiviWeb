@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Generatore preventivi e contratti Abilart Srls">
+  <title>Abilart Srls — Preventivi</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <div class="brand-mark">A</div>
+    <div>
+      <div class="brand-name">ABILART SRLS</div>
+      <div class="brand-sub">Soluzioni Artigiane d'Eccellenza</div>
+    </div>
+  </div>
+</header>
+
+<main class="app-shell">
+
+  <!-- HOME -->
+  <section id="home-screen" class="screen active">
+    <div class="hero">
+      <span class="eyebrow">DOCUMENTI DIGITALI</span>
+      <h1>Crea il tuo preventivo</h1>
+      <p>Seleziona il tipo di documento da compilare. Al termine potrai generare e scaricare direttamente il PDF.</p>
+    </div>
+
+    <div class="quote-choice-grid">
+      <button class="choice-card" type="button" data-open="service-screen">
+        <span class="choice-icon">⚙</span>
+        <span class="choice-title">Preventivo / Contratto</span>
+        <span class="choice-description">Interventi, pronto intervento e servizi tecnici.</span>
+        <span class="choice-action">Inizia →</span>
+      </button>
+
+      <button class="choice-card" type="button" data-open="edile-screen">
+        <span class="choice-icon">▦</span>
+        <span class="choice-title">Preventivo Edile</span>
+        <span class="choice-description">Lavori edili, ristrutturazioni e dettaglio delle lavorazioni.</span>
+        <span class="choice-action">Inizia →</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- SERVICE FORM -->
+  <section id="service-screen" class="screen">
+    <button class="back-button" type="button" data-open="home-screen">← Torna indietro</button>
+
+    <form id="service-form" class="quote-form" novalidate>
+      <div class="form-header">
+        <span class="eyebrow">TIPO 01</span>
+        <h1>Preventivo / Contratto</h1>
+        <p>Interventi tecnici e servizi.</p>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>01</span><h2>Dati dell'intervento</h2></div>
+        <div class="field">
+          <label for="s-category">Categoria intervento *</label>
+          <select id="s-category" name="job-category" required>
+            <option value="">Seleziona categoria</option>
+            <option>Idraulico</option><option>Fabbro</option><option>Caldaia / Scaldabagno</option>
+            <option>Condizionamento</option><option>Muratore</option><option>Vetraio</option>
+            <option>Serramenti</option><option>Elettricista</option><option>Tapparellista</option>
+            <option>Imbianchino</option><option>Piastrellista</option><option>Porte Blindate</option>
+            <option>Ristrutturazione</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>02</span><h2>Dati del committente</h2></div>
+        <div class="field"><label for="s-name">Nome e Cognome *</label><input id="s-name" name="customer-name" required placeholder="es. Mario Rossi"></div>
+        <div class="field-row">
+          <div class="field"><label for="s-address">Indirizzo *</label><input id="s-address" name="customer-address" required placeholder="es. Via Roma 15"></div>
+          <div class="field small"><label for="s-zip">CAP *</label><input id="s-zip" name="customer-zip" required inputmode="numeric" placeholder="20100"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="s-city">Città *</label><input id="s-city" name="customer-city" required placeholder="es. Milano"></div>
+          <div class="field"><label for="s-phone">Telefono *</label><input id="s-phone" name="customer-phone" required inputmode="tel" placeholder="333 1234567"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="s-email">Email *</label><input id="s-email" name="customer-email" type="email" required placeholder="es. contraente@email.it"></div>
+          <div class="field"><label for="s-tax">P.IVA / Codice Fiscale *</label><input id="s-tax" name="customer-tax" required placeholder="P.IVA o Codice Fiscale"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>03</span><h2>Descrizione intervento</h2></div>
+        <div class="rich-toolbar">
+          <button type="button" data-editor="service-editor" data-cmd="bold" title="Grassetto"><strong>G</strong></button>
+          <button type="button" data-editor="service-editor" data-cmd="underline" title="Sottolineato"><u>S</u></button>
+          <button type="button" data-editor="service-editor" data-cmd="insertUnorderedList" title="Elenco">•</button>
+          <button type="button" data-editor="service-editor" data-cmd="foreColor" data-color="#0073aa" title="Blu">A</button>
+          <button type="button" data-editor="service-editor" data-cmd="foreColor" data-color="#c62828" title="Rosso">A</button>
+          <button type="button" data-editor="service-editor" data-cmd="removeFormat" title="Pulisci">Tx</button>
+        </div>
+        <div id="service-editor" class="rich-editor" contenteditable="true" data-placeholder="Descrivi brevemente il lavoro da eseguire..."></div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>04</span><h2>Economia e data</h2></div>
+        <div class="field-row">
+          <div class="field"><label for="s-date">Data intervento *</label><input id="s-date" name="intervention-date" type="date" required></div>
+          <div class="field"><label for="s-price">Prezzo imponibile (€) *</label><input id="s-price" name="price" required inputmode="decimal" placeholder="es. 1500,00"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="s-deposit">Acconto (€)</label><input id="s-deposit" name="deposit" inputmode="decimal" placeholder="0,00"></div>
+          <div class="field narrow"><label for="s-iva">IVA (%) *</label><input id="s-iva" name="iva" value="22" required inputmode="decimal"></div>
+        </div>
+
+        <div class="calculation-box">
+          <div><span>Imponibile</span><strong id="s-preview-base">€ 0,00</strong></div>
+          <div><span>IVA</span><strong id="s-preview-iva">€ 0,00</strong></div>
+          <div class="grand"><span>Totale complessivo</span><strong id="s-preview-total">€ 0,00</strong></div>
+          <div><span>Saldo dopo acconto</span><strong id="s-preview-balance">€ 0,00</strong></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>05</span><h2>Condizioni generali</h2></div>
+        <div class="terms-box">
+          <strong>CONDIZIONI GENERALI DI FORNITURA</strong>
+          <ol>
+            <li>L’impresa Abilart Srls si impegna ad eseguire i lavori a regola d'arte secondo quanto descritto in "Oggetto dei lavori".</li>
+            <li>Il corrispettivo pattuito è quello indicato nel riepilogo economico. Qualora previsto, l'acconto versato vale come caparra confirmatoria.</li>
+            <li>Eventuali modifiche o lavori extra, richiesti in corso d'opera, verranno conteggiati separatamente previa accettazione.</li>
+            <li>La Ditta risponde di eventuali vizi palesi solo se contestati al termine dei lavori; per i vizi occulti si applica l’Art. 2226 c.c.</li>
+            <li>Per ogni controversia legale derivante dal presente contratto è competente in via esclusiva il Foro di Monza.</li>
+            <li>I dati personali raccolti sono trattati nel rispetto del Reg. UE 2016/679 (GDPR). L'impresa garantisce la massima protezione degli stessi, impegnandosi a non divulgarli a terzi se non per obblighi di legge o finalità strettamente connesse all'esecuzione del contratto.</li>
+          </ol>
+        </div>
+        <label class="check-row"><input id="s-accept" type="checkbox" required><span>Dichiaro di aver letto e accettato integralmente i termini e le condizioni.</span></label>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>06</span><h2>Firma del contraente</h2></div>
+        <div class="signature-area">
+          <canvas id="s-signature" class="signature-pad" width="900" height="240"></canvas>
+          <div class="signature-tools"><span>Firma nello spazio sopra</span><button type="button" class="text-button" data-clear-signature="s-signature">Cancella firma</button></div>
+        </div>
+      </div>
+
+      <button type="submit" class="primary-button">Genera e scarica PDF <span>↓</span></button>
+    </form>
+  </section>
+
+  <!-- EDILE FORM -->
+  <section id="edile-screen" class="screen">
+    <button class="back-button" type="button" data-open="home-screen">← Torna indietro</button>
+
+    <form id="edile-form" class="quote-form" novalidate>
+      <div class="form-header">
+        <span class="eyebrow">TIPO 02</span>
+        <h1>Preventivo Edile</h1>
+        <p>Ristrutturazioni, opere e lavorazioni dettagliate.</p>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>01</span><h2>Dati del cliente</h2></div>
+        <div class="field"><label for="e-name">Nome e Cognome Contraente *</label><input id="e-name" required placeholder="es. Mario Rossi"></div>
+        <div class="field-row">
+          <div class="field"><label for="e-email">Email Contraente *</label><input id="e-email" type="email" required placeholder="es. contraente@email.it"></div>
+          <div class="field"><label for="e-phone">Telefono *</label><input id="e-phone" required placeholder="333 1234567"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="e-tax">Codice Fiscale / Partita IVA *</label><input id="e-tax" required placeholder="Codice Fiscale o Partita IVA"></div>
+          <div class="field"><label for="e-reference">Riferimento cantiere / interno / scala</label><input id="e-reference" placeholder="es. Scala B, Interno 4"></div>
+        </div>
+        <div class="field-row three">
+          <div class="field"><label for="e-address">Indirizzo cantiere *</label><input id="e-address" required placeholder="es. Via Roma 15"></div>
+          <div class="field small"><label for="e-zip">CAP *</label><input id="e-zip" required placeholder="20100"></div>
+          <div class="field"><label for="e-city">Città *</label><input id="e-city" required placeholder="es. Milano"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>02</span><h2>Dati intervento / preventivo</h2></div>
+        <div class="field-row three">
+          <div class="field"><label for="e-category">Categoria intervento *</label>
+            <select id="e-category" required>
+              <option value="">Seleziona categoria</option>
+              <option>Ristrutturazione completa</option><option>Ristrutturazione bagno</option><option>Ristrutturazione cucina</option>
+              <option>Opere murarie</option><option>Cartongesso</option><option>Imbiancatura</option><option>Pavimentazione</option>
+              <option>Rifacimento impianti</option><option>Demolizioni</option><option>Tetto / coperture</option><option>Facciata</option>
+              <option>Serramenti e infissi</option><option>Lavori edili generici</option>
+            </select>
+          </div>
+          <div class="field"><label for="e-type">Tipologia lavoro *</label>
+            <select id="e-type" required>
+              <option value="">Seleziona tipologia</option>
+              <option>Sopralluogo e preventivo</option><option>Intervento parziale</option><option>Nuova realizzazione</option>
+              <option>Rifacimento completo</option><option>Manutenzione straordinaria</option>
+            </select>
+          </div>
+          <div class="field"><label for="e-date">Data preventivo / intervento *</label><input id="e-date" type="date" required></div>
+        </div>
+        <div class="field-row three">
+          <div class="field"><label for="e-area">Superficie indicativa (mq)</label><input id="e-area" placeholder="es. 85"></div>
+          <div class="field"><label for="e-duration">Durata stimata lavori</label><input id="e-duration" placeholder="es. 20 giorni lavorativi"></div>
+          <div class="field"><label for="e-urgency">Urgenza</label>
+            <select id="e-urgency"><option>Normale</option><option>Urgente</option><option>Molto urgente</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>03</span><h2>Descrizione lavori / opere previste</h2></div>
+        <div class="rich-toolbar">
+          <button type="button" data-editor="edile-editor" data-cmd="bold"><strong>G</strong></button>
+          <button type="button" data-editor="edile-editor" data-cmd="underline"><u>S</u></button>
+          <button type="button" data-editor="edile-editor" data-cmd="insertUnorderedList">•</button>
+          <button type="button" data-editor="edile-editor" data-cmd="foreColor" data-color="#0073aa">A</button>
+          <button type="button" data-editor="edile-editor" data-cmd="foreColor" data-color="#c62828">A</button>
+          <button type="button" data-editor="edile-editor" data-cmd="removeFormat">Tx</button>
+        </div>
+        <div id="edile-editor" class="rich-editor large" contenteditable="true" data-placeholder="Descrivi in dettaglio lavorazioni, materiali, note operative, eventuali esclusioni..."></div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>04</span><h2>Dettaglio lavori</h2></div>
+        <div class="table-wrap">
+          <table class="work-table" id="work-table">
+            <thead><tr><th>Voce</th><th>Descrizione</th><th>Quantità</th><th>Unità</th><th>Prezzo unitario (€)</th><th>Totale (€)</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button type="button" id="add-row" class="secondary-button">+ Aggiungi riga</button>
+
+        <div class="table-summary">
+          <div><span>Subtotale lavorazioni</span><strong id="table-subtotal">€ 0,00</strong></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>05</span><h2>Condizioni economiche</h2></div>
+        <div class="field-row four">
+          <div class="field"><label for="e-price">Imponibile (€) *</label><input id="e-price" inputmode="decimal" placeholder="es. 12000" required></div>
+          <div class="field"><label for="e-discount">Sconto (€)</label><input id="e-discount" inputmode="decimal" placeholder="0"></div>
+          <div class="field"><label for="e-deposit">Acconto (€)</label><input id="e-deposit" inputmode="decimal" placeholder="0"></div>
+          <div class="field narrow"><label for="e-iva">IVA (%) *</label><input id="e-iva" value="22" inputmode="decimal" required></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="e-payment">Pagamento</label><select id="e-payment"><option>Bonifico bancario</option><option>Contanti</option><option>Assegno</option><option>Rateizzato</option><option>Da concordare</option></select></div>
+          <div class="field"><label for="e-validity">Validità preventivo</label><input id="e-validity" placeholder="es. 15 giorni"></div>
+        </div>
+
+        <div class="calculation-box">
+          <div><span>Imponibile iniziale</span><strong id="e-preview-base">€ 0,00</strong></div>
+          <div><span>Sconto</span><strong id="e-preview-discount">€ 0,00</strong></div>
+          <div><span>Imponibile netto</span><strong id="e-preview-net">€ 0,00</strong></div>
+          <div><span>IVA</span><strong id="e-preview-iva">€ 0,00</strong></div>
+          <div class="grand"><span>Totale complessivo</span><strong id="e-preview-total">€ 0,00</strong></div>
+          <div><span>Acconto</span><strong id="e-preview-deposit">€ 0,00</strong></div>
+          <div><span>Saldo residuo</span><strong id="e-preview-balance">€ 0,00</strong></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>06</span><h2>Condizioni contrattuali</h2></div>
+        <div class="terms-box terms-long">
+          <strong>CONDIZIONI GENERALI DI CONTRATTO</strong>
+          <ol>
+            <li><strong>Oggetto del contratto:</strong> L'Impresa Abilart Srls si impegna ad eseguire le opere e le lavorazioni descritte nel presente preventivo a regola d'arte, nel rispetto della buona tecnica costruttiva, delle norme tecniche applicabili e delle eventuali prescrizioni di legge vigenti.</li>
+            <li><strong>Corrispettivo e preventivo:</strong> Il corrispettivo pattuito è quello indicato nel riepilogo economico del presente documento. Il preventivo si intende formulato sulla base delle informazioni disponibili al momento del sopralluogo e dei dati comunicati dal committente. Eventuali opere aggiuntive, varianti, integrazioni o imprevisti tecnici non rilevabili in fase preliminare comporteranno un aggiornamento economico da approvare separatamente.</li>
+            <li><strong>Acconto e caparra confirmatoria:</strong> L'eventuale acconto versato dal committente si intende corrisposto a titolo di caparra confirmatoria ai sensi dell'articolo 1385 del Codice Civile, salvo diverso accordo scritto tra le parti.</li>
+            <li><strong>Tempi di esecuzione:</strong> I tempi eventualmente indicati hanno natura stimata e non perentoria. Essi potranno subire variazioni in conseguenza di esigenze tecniche, sospensioni richieste dal committente, ritardi nella fornitura dei materiali, indisponibilità di accesso al cantiere, condizioni meteorologiche, ritardi di terzi, autorizzazioni amministrative o altre cause non imputabili all'Impresa.</li>
+            <li><strong>Varianti in corso d'opera:</strong> Eventuali modifiche richieste dal committente dopo l'accettazione del presente preventivo dovranno essere espressamente concordate. Tali varianti potranno comportare variazioni di costi, tempi e modalità esecutive.</li>
+            <li><strong>Obblighi del committente:</strong> Il committente dichiara di aver fornito all'Impresa tutte le informazioni utili sullo stato dei luoghi, sugli impianti esistenti, sui vincoli tecnici e sull'accessibilità del cantiere. Eventuali problematiche strutturali, impiantistiche o edilizie non apparenti o non comunicate potranno comportare adeguamenti tecnici ed economici.</li>
+            <li><strong>Responsabilità e garanzie:</strong> L'Impresa risponde delle opere eseguite nei limiti previsti dalla legge. Restano esclusi i difetti e i danni derivanti da vizi preesistenti, difetti occulti non rilevabili in sede di sopralluogo, eventi di forza maggiore, infiltrazioni provenienti da terzi, interventi successivi eseguiti da soggetti estranei all'Impresa, nonché l'uso improprio delle opere realizzate.</li>
+            <li><strong>Normativa applicabile:</strong> Per quanto non espressamente disciplinato nel presente documento, trovano applicazione le disposizioni del Codice Civile in materia di contratto d'appalto, prestazione d'opera, obbligazioni e responsabilità contrattuale, nonché le norme tecniche e di sicurezza applicabili alle opere commissionate.</li>
+            <li><strong>Sicurezza e accesso al cantiere:</strong> Il committente si impegna a garantire condizioni di accesso idonee e sicure al luogo dell'intervento. Restano a suo carico eventuali autorizzazioni, permessi, pratiche condominiali o amministrative non espressamente incluse nel presente preventivo, salvo diverso accordo scritto.</li>
+            <li><strong>Protezione dei dati personali:</strong> I dati personali raccolti e trattati nell'ambito del presente rapporto contrattuale sono gestiti nel rispetto del Regolamento (UE) 2016/679 del Parlamento Europeo e del Consiglio del 27 aprile 2016, del decreto legislativo 30 giugno 2003, n. 196, come modificato dal decreto legislativo 10 agosto 2018, n. 101, e della normativa nazionale vigente in materia di protezione dei dati personali.</li>
+            <li><strong>Foro competente:</strong> Per ogni controversia relativa all'interpretazione, validità, esecuzione o risoluzione del presente rapporto contrattuale sarà competente in via esclusiva il Foro di Monza, salvo diversa disposizione inderogabile di legge.</li>
+            <li><strong>Approvazione specifica:</strong> Il committente, con la sottoscrizione del presente documento, dichiara di aver letto, compreso e accettato integralmente tutte le clausole contenute nel preventivo e nelle presenti condizioni generali.</li>
+          </ol>
+        </div>
+        <label class="check-row"><input id="e-accept" type="checkbox" required><span>Dichiaro di aver letto, compreso e accettato integralmente le condizioni contrattuali.</span></label>
+      </div>
+
+      <div class="form-card">
+        <div class="section-heading"><span>07</span><h2>Firma cliente</h2></div>
+        <div class="signature-area">
+          <canvas id="e-signature" class="signature-pad" width="900" height="240"></canvas>
+          <div class="signature-tools"><span>Firma nello spazio sopra</span><button type="button" class="text-button" data-clear-signature="e-signature">Cancella firma</button></div>
+        </div>
+      </div>
+
+      <button type="submit" class="primary-button">Genera e scarica PDF <span>↓</span></button>
+    </form>
+  </section>
+
+</main>
+
+<footer class="site-footer">Abilart Srls · Soluzioni Artigiane d'Eccellenza · Lissone (MB)</footer>
+
+<!-- PDF engine: loaded from jsDelivr. No WordPress/CF7 dependency. -->
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

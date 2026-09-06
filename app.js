@@ -402,6 +402,28 @@ async function downloadPDF(html, filename){
 
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
+      // The A4 page has a strictly reserved header/title/body/footer area.
+      // If the user enters unusually long text, shrink ONLY the body content
+      // enough to keep every element inside its reserved body rectangle.
+      // This prevents the footer from ever being painted over totals, tables,
+      // signatures or other content.
+      const body=page.querySelector('.pdf-page-body');
+      if(body){
+        body.style.transform='none';
+        body.style.transformOrigin='top left';
+        body.style.width='100%';
+        const available=body.clientHeight;
+        const required=body.scrollHeight;
+        if(required>available+1){
+          const scale=Math.max(0.72, Math.min(1, available/required));
+          body.style.transform=`scale(${scale})`;
+          body.style.transformOrigin='top left';
+          body.style.width=`${100/scale}%`;
+        }
+      }
+
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
       const canvas=await html2canvas(page,{
         width:794,
         height:1123,

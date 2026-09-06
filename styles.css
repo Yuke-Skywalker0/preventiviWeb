@@ -61,9 +61,11 @@ body.pdf-rendering>header,body.pdf-rendering>main,body.pdf-rendering>footer{visi
 body.pdf-rendering{overflow:hidden!important}
 .pdf-render-host .pdf-page{margin:0!important;transform:none!important}
 .pdf-document{width:794px;background:#fff;color:#26333d;font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
-.pdf-page{width:794px;height:1123px;box-sizing:border-box;background:#fff;position:relative;padding:34px 46px 16px;display:flex;flex-direction:column;page-break-after:always;break-after:page;overflow:hidden}
+.pdf-page{width:794px;height:1123px;box-sizing:border-box;background:#fff;position:relative;padding:34px 46px 16px;display:block;page-break-after:always;break-after:page;overflow:hidden}
 .pdf-page:last-child{page-break-after:auto;break-after:auto}
-.pdf-page-header{height:108px;flex:0 0 108px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0a789e;padding-bottom:12px}
+/* The A4 page is divided into three physical zones: header, body and footer.
+   The body is never allowed to occupy the header/footer reserved areas. */
+.pdf-page-header{height:108px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0a789e;padding-bottom:12px}
 .pdf-company{padding-top:0;min-width:0;display:flex;flex-direction:column;align-items:flex-start}
 .pdf-logo{
     width:150px !important;
@@ -82,8 +84,14 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-company-meta{font-size:7.5px;color:#6d7880;margin-top:7px;white-space:nowrap}
 .pdf-meta{width:162px;border:1px solid #d8e1e6;background:#f7fafb;padding:10px 12px;text-align:right;font-size:8px;color:#69767e;line-height:1.35;border-radius:2px}
 .pdf-meta span{display:block}.pdf-meta strong{display:block;color:#075b82;font-size:11px;margin:3px 0 2px}.pdf-meta em{display:block;font-style:normal;color:#88949b;margin-top:3px;font-size:7px}
-.pdf-doc-type{font-size:14px;font-weight:800;color:#173f57;text-transform:uppercase;letter-spacing:.03em;margin-top:12px}
-.pdf-page-body{padding-top:5px;flex:1 1 auto;min-height:0;overflow:hidden}
+.pdf-doc-type{height:31px;box-sizing:border-box;font-size:14px;font-weight:800;color:#173f57;text-transform:uppercase;letter-spacing:.03em;margin-top:12px;line-height:19px}
+.pdf-page-body{
+  box-sizing:border-box;
+  height:900px; /* 1123 - 34 top padding - 108 header - 31 document title - 16 bottom padding - 34 footer */
+  min-height:0;
+  padding-top:5px;
+  overflow:hidden;
+}
 .pdf-section{margin-top:15px;break-inside:avoid;page-break-inside:avoid}
 .pdf-title{background:#f1f6f8;border-left:4px solid #0a789e;color:#075b82;padding:8px 11px;font-size:10px;font-weight:800;letter-spacing:.025em;margin:14px 0 8px;text-transform:uppercase;break-after:avoid;page-break-after:avoid}
 .pdf-box{border:1px solid #dbe4e8;border-radius:4px;padding:10px 11px;break-inside:avoid;page-break-inside:avoid;background:#fff}
@@ -95,10 +103,13 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-acceptance{margin-top:12px;border:1px solid #dbe4e8;background:#f4f8fa;padding:9px 11px;font-size:7.5px;line-height:1.45;color:#4c5961}
 .pdf-signatures{display:flex;gap:30px;margin-top:24px}.pdf-signature{width:50%;min-height:116px;border-top:1px solid #cfd9de;padding-top:8px;font-size:7.8px;color:#69767e}.pdf-signature strong{display:block;font-size:8.5px;color:#26333d;margin-top:5px}.pdf-signature small{display:block;font-size:7px;margin-top:3px}.pdf-signature img{max-width:190px;max-height:65px;display:block;margin:9px 0 3px;object-fit:contain;object-position:left center}.pdf-sign-line{height:72px;border-bottom:1px solid #cfd9de;margin:3px 0 5px}.pdf-sign-space{height:54px}.pdf-sign-date{display:block;margin-top:7px}
 .pdf-footer{
-  position:static;
-  flex:0 0 34px;
+  position:absolute;
+  left:46px;
+  right:46px;
+  bottom:16px;
   height:34px;
-  width:100%;
+  box-sizing:border-box;
+  width:auto;
   border-top:1px solid #d8e2e7;
   padding-top:6px;
   display:grid;

@@ -61,16 +61,16 @@ body.pdf-rendering>header,body.pdf-rendering>main,body.pdf-rendering>footer{visi
 body.pdf-rendering{overflow:hidden!important}
 .pdf-render-host .pdf-page{margin:0!important;transform:none!important}
 .pdf-document{width:794px;background:#fff;color:#26333d;font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
-.pdf-page{width:794px;height:1123px;box-sizing:border-box;background:#fff;position:relative;padding:34px 46px 16px;display:flex;flex-direction:column;page-break-after:always;break-after:page;overflow:hidden}
+.pdf-page{width:794px;height:1123px;box-sizing:border-box;background:#fff;position:relative;padding:34px 46px 16px;display:block;page-break-after:always;break-after:page;overflow:hidden}
 .pdf-page:last-child{page-break-after:auto;break-after:auto}
 /* The A4 page is divided into three physical zones: header, body and footer.
    The body is never allowed to occupy the header/footer reserved areas. */
-.pdf-page-header{height:132px;min-height:132px;flex:0 0 132px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0a789e;padding-bottom:12px}
+.pdf-page-header{height:108px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0a789e;padding-bottom:12px}
 .pdf-company{padding-top:0;min-width:0;display:flex;flex-direction:column;align-items:flex-start}
 .pdf-logo{
-    width:135px !important;
+    width:150px !important;
     height:auto !important;
-    max-width:135px !important;
+    max-width:150px !important;
     max-height:68px !important;
     min-width:0 !important;
     min-height:0 !important;
@@ -84,19 +84,14 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-company-meta{font-size:7.5px;color:#6d7880;margin-top:7px;white-space:nowrap}
 .pdf-meta{width:162px;border:1px solid #d8e1e6;background:#f7fafb;padding:10px 12px;text-align:right;font-size:8px;color:#69767e;line-height:1.35;border-radius:2px}
 .pdf-meta span{display:block}.pdf-meta strong{display:block;color:#075b82;font-size:11px;margin:3px 0 2px}.pdf-meta em{display:block;font-style:normal;color:#88949b;margin-top:3px;font-size:7px}
-.pdf-doc-type{height:31px;min-height:31px;flex:0 0 31px;box-sizing:border-box;font-size:14px;font-weight:800;color:#173f57;text-transform:uppercase;letter-spacing:.03em;margin-top:12px;line-height:19px}
+.pdf-doc-type{height:31px;box-sizing:border-box;font-size:14px;font-weight:800;color:#173f57;text-transform:uppercase;letter-spacing:.03em;margin-top:12px;line-height:19px}
 .pdf-page-body{
   box-sizing:border-box;
-  flex:1 1 auto;
-  height:auto;
+  height:900px; /* 1123 - 34 top padding - 108 header - 31 document title - 16 bottom padding - 34 footer */
   min-height:0;
   padding-top:5px;
   overflow:hidden;
 }
-.pdf-flow-section{display:block;margin:0;padding:0;break-inside:avoid;page-break-inside:avoid}
-.pdf-flow-section + .pdf-flow-section{margin-top:0}
-.pdf-payment-single{margin-top:8px}
-.pdf-payment-single>div{flex:0 0 100%}
 .pdf-section{margin-top:15px;break-inside:avoid;page-break-inside:avoid}
 .pdf-title{background:#f1f6f8;border-left:4px solid #0a789e;color:#075b82;padding:8px 11px;font-size:10px;font-weight:800;letter-spacing:.025em;margin:14px 0 8px;text-transform:uppercase;break-after:avoid;page-break-after:avoid}
 .pdf-box{border:1px solid #dbe4e8;border-radius:4px;padding:10px 11px;break-inside:avoid;page-break-inside:avoid;background:#fff}
@@ -108,19 +103,17 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-acceptance{margin-top:12px;border:1px solid #dbe4e8;background:#f4f8fa;padding:9px 11px;font-size:7.5px;line-height:1.45;color:#4c5961}
 .pdf-signatures{display:flex;gap:30px;margin-top:24px}.pdf-signature{width:50%;min-height:116px;border-top:1px solid #cfd9de;padding-top:8px;font-size:7.8px;color:#69767e}.pdf-signature strong{display:block;font-size:8.5px;color:#26333d;margin-top:5px}.pdf-signature small{display:block;font-size:7px;margin-top:3px}.pdf-signature img{max-width:190px;max-height:65px;display:block;margin:9px 0 3px;object-fit:contain;object-position:left center}.pdf-sign-line{height:72px;border-bottom:1px solid #cfd9de;margin:3px 0 5px}.pdf-sign-space{height:54px}.pdf-sign-date{display:block;margin-top:7px}
 .pdf-footer{
-  position:static;
-  left:auto;
-  right:auto;
-  bottom:auto;
+  position:absolute;
+  left:46px;
+  right:46px;
+  bottom:16px;
   height:34px;
-  min-height:34px;
-  flex:0 0 34px;
   box-sizing:border-box;
-  width:100%;
+  width:auto;
   border-top:1px solid #d8e2e7;
   padding-top:6px;
   display:grid;
-  grid-template-columns:1.15fr 1.55fr 1.35fr 1.2fr;
+  grid-template-columns:1.15fr 1.55fr 1.35fr auto;
   align-items:center;
   gap:10px;
   font-size:6.2px;
@@ -134,7 +127,6 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-footer-contact,.pdf-footer-sites{display:flex;flex-direction:column;gap:2px}
 .pdf-footer-sites{align-items:flex-start}
 .pdf-footer-copy{font-size:5.8px;color:#9aa5aa;text-align:right}
-.pdf-footer-address{font-size:5.8px;color:#63727b;text-decoration:none;text-align:right;align-self:center}.pdf-footer-address:hover{text-decoration:underline}
 @media print{body{background:#fff}.site-header,.site-footer,.app-shell{display:none!important}.pdf-render-host{position:static!important}.pdf-page{margin:0!important}}
 @media(max-width:760px){.quote-choice-grid{grid-template-columns:1fr}.field-row{flex-direction:column;gap:0}.field.small,.field.narrow{flex:auto}.hero h1{font-size:31px}.form-card{padding:18px}.site-header{padding:18px}.app-shell{padding:22px 12px 45px}}
 @media print{body{background:#fff}.site-header,.site-footer,.app-shell{display:none!important}.pdf-document{display:block!important}}
@@ -190,12 +182,112 @@ body.pdf-rendering{overflow:hidden!important}
 
 /* Final logo/footer polish */
 .pdf-page-header .pdf-company{width:430px}
-.pdf-company-info{margin-top:5px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;font-size:6.8px;line-height:1.25;color:#68767e;white-space:nowrap}
-.pdf-company-info strong{font-size:7.6px;letter-spacing:.05em;color:#173f57}
-.pdf-company-info a{color:#3f6575;text-decoration:none}
-.pdf-company-info a:hover{text-decoration:underline}
-.pdf-company-links{display:flex;gap:7px;align-items:center}
-.pdf-company-links a{display:inline-block}
+.pdf-company-meta{margin-top:5px!important}
 .pdf-footer a:hover{text-decoration:underline}
 
-.pdf-data-link{color:#3f6575;text-decoration:none}.pdf-data-link:hover{text-decoration:underline}
+/* =========================================================
+   PDF 2026 — CLEAN FLOW LAYOUT / VARIABLE LENGTH
+   The PDF is one continuous A4-width document. Pagination is
+   performed by the renderer, so content can grow to any length.
+   ========================================================= */
+.pdf-document,
+.pdf-flow-document{
+  width:794px;
+  min-height:0;
+  height:auto;
+  margin:0;
+  padding:0;
+  background:#fff;
+  color:#26333d;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+}
+.pdf-flow-document *{box-sizing:border-box}
+.pdf-flow-document a{color:#315f78;text-decoration:none}
+.pdf-flow-document a:hover{text-decoration:underline}
+.pdf-cover-header{
+  height:auto!important;
+  min-height:151px;
+  margin:0 46px;
+  padding:28px 0 13px!important;
+  border-bottom:2px solid #0a789e!important;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+.pdf-flow-document .pdf-company{width:455px;display:flex;align-items:flex-start;flex-direction:column;padding:0}
+.pdf-flow-document .pdf-logo{width:155px!important;height:auto!important;max-width:155px!important;max-height:none!important;object-fit:contain!important;display:block!important;margin:0 0 7px!important}
+.pdf-company-name{font-size:8.4px;font-weight:800;letter-spacing:.08em;color:#173f57;margin-top:0}
+.pdf-flow-document .pdf-company-meta{font-size:6.8px;line-height:1.5;color:#6d7880;margin-top:2px!important;white-space:normal}
+.pdf-company-meta span{display:block}
+.pdf-flow-document .pdf-meta{width:166px;border:1px solid #d7e1e6;background:#f8fafb;padding:10px 12px;text-align:right;font-size:7.4px;color:#7b878e;line-height:1.45;border-radius:3px}
+.pdf-flow-document .pdf-meta strong{font-size:10px;color:#075b82;letter-spacing:.01em}
+.pdf-flow-document .pdf-doc-type{margin:0 46px;padding:15px 0 10px;font-size:16px;font-weight:800;color:#173f57;letter-spacing:.055em;text-transform:uppercase}
+.pdf-flow-body{padding:0 46px 34px;min-height:0;overflow:visible}
+.pdf-flow-body>.pdf-title:first-child{margin-top:3px}
+.pdf-flow-body .pdf-title{margin:16px 0 8px;padding:8px 12px;background:#eef5f8;border-left:4px solid #0a789e;color:#075b82;font-size:9.5px;line-height:1.25;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.pdf-flow-body .pdf-box{border:1px solid #d7e2e7;border-radius:5px;background:#fff;padding:11px 12px}
+.pdf-flow-body .pdf-data{font-size:8.2px;line-height:1.45}
+.pdf-flow-body .pdf-data td{padding:5px 7px;vertical-align:top}
+.pdf-flow-body .pdf-label{font-size:6.5px;letter-spacing:.06em;color:#7b878e;margin-bottom:3px}
+.pdf-flow-body .pdf-data strong{font-size:8.8px;color:#26333d}
+.pdf-flow-body .pdf-description-flow{padding:13px 14px;margin-bottom:2px;min-height:0}
+.pdf-description-content{font-size:8.7px;line-height:1.55;color:#26333d;overflow:visible}
+.pdf-description-content p{margin:0 0 7px}
+.pdf-description-content p:last-child{margin-bottom:0}
+.pdf-description-content h1,.pdf-description-content h2,.pdf-description-content h3{margin:10px 0 5px;line-height:1.25;color:#173f57}
+.pdf-description-content ul,.pdf-description-content ol{margin:4px 0 7px;padding-left:19px}
+.pdf-description-content li{margin-bottom:3px}
+.pdf-description-content strong{font-weight:750}
+.pdf-description-content u{text-decoration:underline}
+.pdf-flow-body .pdf-table-wrap{border:1px solid #d7e2e7;border-radius:5px;overflow:visible}
+.pdf-flow-body .pdf-table{font-size:7.5px;border-collapse:collapse;width:100%;table-layout:fixed}
+.pdf-flow-body .pdf-table th{background:#075f83;color:#fff;padding:7px 6px;border:1px solid #075f83;font-size:7.1px;text-transform:uppercase;letter-spacing:.02em}
+.pdf-flow-body .pdf-table td{padding:6px;border:1px solid #d9e3e8;vertical-align:top;line-height:1.35;word-wrap:break-word}
+.pdf-flow-body .pdf-table th:nth-child(1){width:13%}.pdf-flow-body .pdf-table th:nth-child(2){width:35%}.pdf-flow-body .pdf-table th:nth-child(3){width:8%}.pdf-flow-body .pdf-table th:nth-child(4){width:9%}.pdf-flow-body .pdf-table th:nth-child(5){width:17%}.pdf-flow-body .pdf-table th:nth-child(6){width:18%}
+.pdf-flow-body .pdf-table-subtotal{display:flex;justify-content:flex-end;gap:32px;font-size:8px;margin:7px 2px 0;padding:0}
+.pdf-flow-body .pdf-economy{border:1px solid #d7e2e7;border-radius:5px;overflow:hidden;padding:0;background:#fff}
+.pdf-flow-body .pdf-money{font-size:8.4px}
+.pdf-flow-body .pdf-money td{padding:6px 9px;border-bottom:1px solid #edf1f3}
+.pdf-flow-body .pdf-total td{background:#075f83;color:#fff;font-size:11.5px;padding:8px 10px}
+.pdf-flow-body .pdf-balance td{padding:7px 9px;font-size:8.8px;font-weight:800}
+.pdf-flow-body .pdf-payment{display:flex;gap:10px;margin-top:9px}
+.pdf-flow-body .pdf-payment>div{flex:1;border:1px solid #d7e2e7;background:#f7fafb;border-radius:4px;padding:8px 10px}
+.pdf-flow-body .pdf-payment span{display:block;font-size:6.5px;color:#7b878e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.pdf-flow-body .pdf-payment strong{font-size:8.4px;color:#26333d}
+/* One single terms box. It may continue to another PDF page, but never becomes columns. */
+.pdf-flow-body .pdf-terms-box{border:1px solid #d7e2e7;border-radius:5px;background:#fbfcfd;padding:12px 15px;font-size:7.6px;line-height:1.5;color:#414c53;text-align:left}
+.pdf-flow-body .pdf-terms-box ol{margin:0;padding-left:20px}
+.pdf-flow-body .pdf-terms-box li{padding-left:4px;margin:0 0 8px;break-inside:avoid;page-break-inside:avoid}
+.pdf-flow-body .pdf-terms-box li:last-child{margin-bottom:0}
+.pdf-flow-body .pdf-terms-box li::marker{color:#0a789e;font-weight:800}
+.pdf-flow-body .pdf-terms-box strong{color:#26333d;font-weight:800}
+.pdf-flow-body .pdf-acceptance{margin-top:10px;border:1px solid #d7e2e7;background:#f4f8fa;border-radius:4px;padding:9px 11px;font-size:7.3px;line-height:1.45;color:#4c5961}
+.pdf-flow-body .pdf-signatures{display:flex;gap:16px;margin-top:18px}
+.pdf-flow-body .pdf-signature{flex:1;width:auto;min-height:120px;border:1px solid #d7e2e7;border-radius:5px;padding:10px 12px;font-size:7.5px;color:#69767e;background:#fff}
+.pdf-flow-body .pdf-signature .pdf-label{border-bottom:1px solid #e5ecef;padding-bottom:6px;margin-bottom:4px}
+.pdf-flow-body .pdf-signature strong{display:block;font-size:8.5px;color:#26333d;margin-top:5px}
+.pdf-flow-body .pdf-signature small{display:block;font-size:6.8px;margin-top:3px}
+.pdf-flow-body .pdf-signature img{max-width:190px;max-height:65px;display:block;margin:9px 0 3px;object-fit:contain;object-position:left center}
+.pdf-flow-body .pdf-sign-space{height:54px}
+.pdf-document-footer{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;width:auto!important;height:42px!important;margin:0 46px!important;border-top:1px solid #d8e2e7;padding:8px 0 0!important;display:grid!important;grid-template-columns:1.25fr 1.55fr 1.35fr 1.1fr!important;align-items:start!important;gap:12px;font-size:6px;line-height:1.35;white-space:nowrap;color:#63727b}
+.pdf-document-footer .pdf-footer-brand,.pdf-document-footer .pdf-footer-contact,.pdf-document-footer .pdf-footer-sites{display:flex;flex-direction:column;gap:2px}
+.pdf-document-footer .pdf-footer-brand strong{font-size:6.7px;color:#173f57;letter-spacing:.05em}
+.pdf-document-footer .pdf-footer-brand span{font-size:5.7px;color:#87949b}
+.pdf-document-footer .pdf-footer-address{text-align:right;color:#7d898f}
+.pdf-flow-document::after{content:"ABILART • PREVENTIVI E CONTRATTI";display:block;position:absolute;left:50%;top:58%;transform:translate(-50%,-50%) rotate(-35deg);font-size:30px;font-weight:800;letter-spacing:.08em;color:rgba(7,95,131,.035);pointer-events:none;white-space:nowrap}
+.pdf-flow-document{position:relative}
+.pdf-flow-document .pdf-page-header,.pdf-flow-document .pdf-doc-type,.pdf-flow-document .pdf-flow-body,.pdf-flow-document .pdf-document-footer{position:relative;z-index:1}
+.pdf-render-host{position:absolute;left:0;top:0;width:794px;height:auto;z-index:2147483647;background:#fff;pointer-events:none;overflow:visible}
+.pdf-render-host .pdf-flow-document{display:block!important}
+body.pdf-rendering>header,body.pdf-rendering>main,body.pdf-rendering>footer{visibility:hidden!important}
+body.pdf-rendering{overflow:hidden!important}
+@media print{.pdf-flow-document{display:block!important}.pdf-render-host{position:static!important}.pdf-flow-body{overflow:visible!important}}
+/* Long-flow boxes: their content may continue naturally across A4 pages. */
+.pdf-flow-body{height:auto!important;overflow:visible!important}
+.pdf-description-flow{border-top:1px solid #d7e2e7!important;border-left:1px solid #d7e2e7!important;border-right:1px solid #d7e2e7!important;border-bottom:0!important;border-radius:5px 5px 0 0!important;padding-bottom:14px!important}
+.pdf-description-flow .pdf-description-content{padding-bottom:1px}
+.pdf-flow-body .pdf-terms-box{border-bottom:0;border-radius:5px 5px 0 0}
+.pdf-flow-body .pdf-terms-box ol{padding-bottom:1px}
+.pdf-flow-body .pdf-description-flow::after,
+.pdf-flow-body .pdf-terms-box::after{content:"";display:block;height:1px;background:#d7e2e7;margin:11px -15px -13px}

@@ -109,15 +109,10 @@
           <div class="field"><label for="s-date">Data intervento *</label><input id="s-date" name="intervention-date" type="date" required></div>
           <div class="field"><label for="s-price">Prezzo imponibile (€) *</label><input id="s-price" name="price" required inputmode="decimal" placeholder="es. 1500,00"></div>
         </div>
-        <div class="field-row">
+        <div class="field-row three">
           <div class="field"><label for="s-deposit">Acconto (€)</label><input id="s-deposit" name="deposit" inputmode="decimal" placeholder="0,00"></div>
           <div class="field narrow"><label for="s-iva">IVA (%) *</label><input id="s-iva" name="iva" value="22" required inputmode="decimal"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label for="s-validity">Validità preventivo</label><select id="s-validity" name="quote-validity">
-            <option value="">Seleziona validità</option>
-            <option>7 giorni</option><option>15 giorni</option><option>30 giorni</option><option>60 giorni</option><option>90 giorni</option><option>Fino a esaurimento disponibilità</option>
-          </select></div>
+          <div class="field"><label for="s-validity">Validità preventivo</label><input id="s-validity" name="quote-validity" placeholder="es. 15 giorni"></div>
         </div>
 
         <div class="calculation-box">
@@ -254,10 +249,7 @@
         </div>
         <div class="field-row">
           <div class="field"><label for="e-payment">Pagamento</label><select id="e-payment"><option>Bonifico bancario</option><option>Contanti</option><option>Assegno</option><option>Rateizzato</option><option>Da concordare</option></select></div>
-          <div class="field"><label for="e-validity">Validità preventivo</label><select id="e-validity">
-            <option value="">Seleziona validità</option>
-            <option>7 giorni</option><option>15 giorni</option><option>30 giorni</option><option>60 giorni</option><option>90 giorni</option><option>Fino a esaurimento disponibilità</option>
-          </select></div>
+          <div class="field"><label for="e-validity">Validità preventivo</label><input id="e-validity" placeholder="es. 15 giorni"></div>
         </div>
 
         <div class="calculation-box">

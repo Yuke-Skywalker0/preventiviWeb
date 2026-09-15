@@ -329,6 +329,7 @@ function buildServicePDF(){
     ${pdfDescription(desc)}
     ${pdfSectionTitle('RIEPILOGO ECONOMICO')}
     ${pdfEconomy(base,0,dep,ivaP)}
+    <div class="pdf-payment pdf-payment-single"><div><span>VALIDITÀ DEL PREVENTIVO</span><strong>${escapeHtml($('#s-validity').value||'—')}</strong></div></div>
   `;
   const p2=`
     ${pdfSectionTitle('CONDIZIONI GENERALI DI FORNITURA')}
@@ -390,6 +391,153 @@ function buildEdilePDF(){
   return `<div class="pdf-document">${pdfPage(p1,number,date,'PREVENTIVO EDILE','PAGINA 1 / 3')}${pdfPage(p2,number,date,'PREVENTIVO EDILE','PAGINA 2 / 3')}${pdfPage(p3,number,date,'PREVENTIVO EDILE','PAGINA 3 / 3')}</div>`;
 }
 
+function makePdfPage(title, number, date, pageLabel, bodyHtml){
+  return `<section class="pdf-page">
+    ${pdfPageHeader(title,number,date,pageLabel)}
+    <div class="pdf-page-body">${bodyHtml}</div>
+    ${pdfFooter()}
+  </section>`;
+}
+
+function createPageFromSource(sourcePage, bodyHtml, pageIndex, total, title, number, date){
+  const label=`PAGINA ${pageIndex} / ${total}`;
+  const wrapper=document.createElement('div');
+  wrapper.innerHTML=makePdfPage(title,number,date,label,bodyHtml);
+  return wrapper.firstElementChild;
+}
+
+function groupPageBody(body){
+  const nodes=[...body.children];
+  const groups=[];
+  let i=0;
+  while(i<nodes.length){
+    const node=nodes[i];
+    if(node.classList.contains('pdf-title') && nodes[i+1]){
+      const group=document.createElement('div');
+      group.className='pdf-flow-section';
+      group.append(node.cloneNode(true), nodes[i+1].cloneNode(true));
+      groups.push(group);
+      i+=2;
+    }else{
+      const group=document.createElement('div');
+      group.className='pdf-flow-section';
+      group.append(node.cloneNode(true));
+      groups.push(group);
+      i++;
+    }
+  }
+  return groups;
+}
+
+function splitDescriptionSection(section, available){
+  const desc=section.querySelector('.pdf-description');
+  if(!desc) return null;
+  const title=section.querySelector('.pdf-title')?.cloneNode(true);
+  const content=desc.cloneNode(false);
+  content.innerHTML='';
+  const source=[...desc.childNodes];
+  if(!source.length) return null;
+
+  const chunks=[];
+  let chunk=content.cloneNode(false);
+  for(const node of source){
+    const candidate=node.cloneNode(true);
+    chunk.appendChild(candidate);
+    const probe=document.createElement('div');
+    probe.className='pdf-flow-section';
+    if(title) probe.appendChild(title.cloneNode(true));
+    const box=desc.cloneNode(false); box.innerHTML=chunk.innerHTML; probe.appendChild(box);
+    probe.style.position='absolute'; probe.style.visibility='hidden'; probe.style.width='100%';
+    document.body.appendChild(probe);
+    const h=probe.scrollHeight;
+    probe.remove();
+    if(h>available && chunk.childNodes.length>1){
+      chunk.removeChild(candidate);
+      chunks.push(chunk);
+      chunk=content.cloneNode(false);
+      chunk.appendChild(candidate);
+    }
+  }
+  if(chunk.childNodes.length) chunks.push(chunk);
+  if(chunks.length<=1) return null;
+  return chunks.map((c,idx)=>{
+    const sec=document.createElement('div'); sec.className='pdf-flow-section';
+    if(title) sec.appendChild(title.cloneNode(true));
+    const box=desc.cloneNode(false); box.innerHTML=c.innerHTML;
+    if(idx>0){
+      const t=sec.querySelector('.pdf-title');
+      if(t) t.textContent='OGGETTO DELLA PRESTAZIONE D\'OPERA — SEGUE';
+    }
+    sec.appendChild(box); return sec;
+  });
+}
+
+function paginatePdfPages(holder){
+  const original=[...holder.querySelectorAll('.pdf-page')];
+  if(!original.length) return;
+  const generated=[];
+  const sourceDocuments=[];
+
+  original.forEach(page=>{
+    const body=page.querySelector('.pdf-page-body');
+    const header=page.querySelector('.pdf-page-header');
+    const type=page.querySelector('.pdf-doc-type');
+    const metaNumber=page.querySelector('.pdf-meta strong')?.textContent||'';
+    const metaDate=(page.querySelector('.pdf-meta span:nth-of-type(2)')?.textContent||'').replace(/^DATA:\s*/,'');
+    const title=type?.textContent||'PREVENTIVO / CONTRATTO';
+    const groups=groupPageBody(body);
+    sourceDocuments.push({groups,title,number:metaNumber,date:metaDate});
+  });
+
+  // Preserve intentional document sections: each original fixed page becomes a flow group.
+  sourceDocuments.forEach(doc=>{
+    let current=[];
+    const flush=()=>{
+      if(!current.length) return;
+      generated.push({title:doc.title,number:doc.number,date:doc.date,groups:current});
+      current=[];
+    };
+    for(const group of doc.groups){
+      const test=document.createElement('div');
+      test.className='pdf-page';
+      test.style.position='absolute'; test.style.left='-99999px'; test.style.top='0';
+      test.style.width='794px'; test.style.height='1123px';
+      test.innerHTML=`${pdfPageHeader(doc.title,doc.number,doc.date,'PAGINA X / X')}<div class="pdf-page-body"></div>${pdfFooter()}`;
+      const b=test.querySelector('.pdf-page-body');
+      current.forEach(g=>b.appendChild(g.cloneNode(true)));
+      b.appendChild(group.cloneNode(true));
+      document.body.appendChild(test);
+      const fits=b.scrollHeight<=b.clientHeight+1;
+      test.remove();
+      if(fits){
+        current.push(group);
+      }else{
+        if(current.length) flush();
+        // A single oversized description is split into measured chunks. Other oversized blocks
+        // are placed alone and allowed to create their own continuation page.
+        const probe=document.createElement('div');
+        probe.className='pdf-page'; probe.style.position='absolute'; probe.style.left='-99999px'; probe.style.top='0'; probe.style.width='794px'; probe.style.height='1123px';
+        probe.innerHTML=`${pdfPageHeader(doc.title,doc.number,doc.date,'PAGINA X / X')}<div class="pdf-page-body"></div>${pdfFooter()}`;
+        document.body.appendChild(probe);
+        const parts=splitDescriptionSection(group,probe.querySelector('.pdf-page-body').clientHeight);
+        probe.remove();
+        if(parts){ parts.forEach(part=>generated.push({title:doc.title,number:doc.number,date:doc.date,groups:[part]})); }
+        else current=[group];
+      }
+    }
+    flush();
+  });
+
+  const total=generated.length;
+  const documentRoot=document.createElement('div');
+  documentRoot.className='pdf-document';
+  generated.forEach((pageData,idx)=>{
+    const bodyHtml=pageData.groups.map(g=>g.outerHTML).join('');
+    documentRoot.insertAdjacentHTML('beforeend',makePdfPage(pageData.title,pageData.number,pageData.date,`PAGINA ${idx+1} / ${total}`,bodyHtml));
+  });
+  holder.innerHTML=''; holder.appendChild(documentRoot);
+}
+
 async function downloadPDF(html, filename){
   if(typeof html2canvas==='undefined' || typeof window.jspdf==='undefined' || typeof window.jspdf.jsPDF==='undefined'){
     alert('Il motore PDF non è stato caricato. Controlla la connessione Internet e ricarica la pagina.');
@@ -402,103 +550,41 @@ async function downloadPDF(html, filename){
   document.body.appendChild(holder);
   document.body.classList.add('pdf-rendering');
 
-  const pages=[...holder.querySelectorAll('.pdf-page')];
-  if(!pages.length){
-    document.body.classList.remove('pdf-rendering');
-    holder.remove();
-    alert('Nessuna pagina PDF da generare.');
-    return;
-  }
-
   try{
-    // Render each already-designed A4 page independently. This avoids the
-    // automatic scaling/reflow performed by html2pdf and keeps the document
-    // perfectly centered at 100% of the A4 page width.
+    // First build the final page count from the real rendered heights. No body scaling is used:
+    // content is moved to a new A4 page before rasterization, so nothing can cross the footer.
+    paginatePdfPages(holder);
+    const pages=[...holder.querySelectorAll('.pdf-page')];
     const { jsPDF } = window.jspdf;
-    const pdf=new jsPDF({
-      unit:'mm',
-      format:'a4',
-      orientation:'portrait',
-      compress:true,
-      putOnlyUsedFonts:true
-    });
+    const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true,putOnlyUsedFonts:true});
 
     for(let i=0;i<pages.length;i++){
       const page=pages[i];
-
-      // Make absolutely sure the page has the exact CSS pixel dimensions used
-      // by the PDF template before taking the screenshot.
-      page.style.width='794px';
-      page.style.height='1123px';
-      page.style.margin='0';
-      page.style.transform='none';
-
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-      // The A4 page has a strictly reserved header/title/body/footer area.
-      // If the user enters unusually long text, shrink ONLY the body content
-      // enough to keep every element inside its reserved body rectangle.
-      // This prevents the footer from ever being painted over totals, tables,
-      // signatures or other content.
+      page.style.width='794px'; page.style.height='1123px'; page.style.margin='0'; page.style.transform='none';
       const body=page.querySelector('.pdf-page-body');
-      if(body){
-        body.style.transform='none';
-        body.style.transformOrigin='top left';
-        body.style.width='100%';
-        const available=body.clientHeight;
-        const required=body.scrollHeight;
-        if(required>available+1){
-          const scale=Math.max(0.72, Math.min(1, available/required));
-          body.style.transform=`scale(${scale})`;
-          body.style.transformOrigin='top left';
-          body.style.width=`${100/scale}%`;
-        }
+      if(body && body.scrollHeight>body.clientHeight+1){
+        throw new Error('Contenuto eccedente l\'area utile della pagina dopo la paginazione.');
       }
-
-      await new Promise(resolve => requestAnimationFrame(resolve));
-
-      const canvas=await html2canvas(page,{
-        width:794,
-        height:1123,
-        windowWidth:794,
-        windowHeight:1123,
-        scale:2,
-        useCORS:true,
-        allowTaint:true,
-        backgroundColor:'#ffffff',
-        logging:false,
-        scrollX:0,
-        scrollY:0,
-        imageTimeout:15000
-      });
-
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      const canvas=await html2canvas(page,{width:794,height:1123,windowWidth:794,windowHeight:1123,scale:2,useCORS:true,allowTaint:true,backgroundColor:'#fff',logging:false,scrollX:0,scrollY:0,imageTimeout:15000});
       if(i>0) pdf.addPage('a4','portrait');
       pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');
-
-      // Create real PDF annotations from the actual DOM positions.
-      // This keeps every clickable area aligned even when the header/footer changes.
-      const pageRect = page.getBoundingClientRect();
-      const pxToMmX = 210 / 794;
-      const pxToMmY = 297 / 1123;
-      page.querySelectorAll('[data-pdf-link]').forEach(el => {
-        const href = el.getAttribute('href');
-        if(!href) return;
-        const r = el.getBoundingClientRect();
-        const x = Math.max(0, (r.left - pageRect.left - 1) * pxToMmX);
-        const y = Math.max(0, (r.top - pageRect.top - 1) * pxToMmY);
-        const w = Math.min(210 - x, Math.max(2, (r.width + 2) * pxToMmX));
-        const h = Math.min(297 - y, Math.max(3, (r.height + 2) * pxToMmY));
-        pdf.link(x, y, w, h, { url: href });
+      const pageRect=page.getBoundingClientRect();
+      const pxToMmX=210/794, pxToMmY=297/1123;
+      page.querySelectorAll('[data-pdf-link]').forEach(el=>{
+        const href=el.getAttribute('href'); if(!href) return;
+        const r=el.getBoundingClientRect();
+        const x=Math.max(0,(r.left-pageRect.left-1)*pxToMmX), y=Math.max(0,(r.top-pageRect.top-1)*pxToMmY);
+        const w=Math.min(210-x,Math.max(2,(r.width+2)*pxToMmX)), h=Math.min(297-y,Math.max(3,(r.height+2)*pxToMmY));
+        pdf.link(x,y,w,h,{url:href});
       });
     }
-
     pdf.save(filename);
   }catch(err){
     console.error('Errore generazione PDF:',err);
-    alert('Errore durante la generazione del PDF. Riprova dopo aver ricaricato la pagina.');
+    alert('Il contenuto è troppo lungo per essere impaginato correttamente. Il PDF non è stato generato per evitare tagli o sovrapposizioni.');
   }finally{
-    document.body.classList.remove('pdf-rendering');
-    holder.remove();
+    document.body.classList.remove('pdf-rendering'); holder.remove();
   }
 }
 

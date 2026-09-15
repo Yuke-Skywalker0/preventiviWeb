@@ -87,11 +87,15 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-doc-type{height:31px;box-sizing:border-box;font-size:14px;font-weight:800;color:#173f57;text-transform:uppercase;letter-spacing:.03em;margin-top:12px;line-height:19px}
 .pdf-page-body{
   box-sizing:border-box;
-  height:876px; /* 1123 - 34 top padding - 132 header - 31 document title - 16 bottom padding - 34 footer */
+  height:864px;
   min-height:0;
   padding-top:5px;
   overflow:hidden;
 }
+.pdf-flow-section{display:block;margin:0;padding:0;break-inside:avoid;page-break-inside:avoid}
+.pdf-flow-section + .pdf-flow-section{margin-top:0}
+.pdf-payment-single{margin-top:8px}
+.pdf-payment-single>div{flex:0 0 100%}
 .pdf-section{margin-top:15px;break-inside:avoid;page-break-inside:avoid}
 .pdf-title{background:#f1f6f8;border-left:4px solid #0a789e;color:#075b82;padding:8px 11px;font-size:10px;font-weight:800;letter-spacing:.025em;margin:14px 0 8px;text-transform:uppercase;break-after:avoid;page-break-after:avoid}
 .pdf-box{border:1px solid #dbe4e8;border-radius:4px;padding:10px 11px;break-inside:avoid;page-break-inside:avoid;background:#fff}

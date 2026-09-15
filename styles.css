@@ -291,3 +291,247 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-flow-body .pdf-terms-box ol{padding-bottom:1px}
 .pdf-flow-body .pdf-description-flow::after,
 .pdf-flow-body .pdf-terms-box::after{content:"";display:block;height:1px;background:#d7e2e7;margin:11px -15px -13px}
+
+/* =========================================================
+   FINAL POLISH — A4 SAFE MARGINS / TYPOGRAPHY / WATERMARK
+   ========================================================= */
+.pdf-flow-document{
+  width:794px;
+  margin:0;
+  padding:0;
+  background-color:#fff;
+  /* Watermark is a BACKGROUND layer, never an HTML layer above text. */
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='794' height='1123' viewBox='0 0 794 1123'%3E%3Ctext x='750' y='610' transform='rotate(-90 750 610)' font-family='Arial,sans-serif' font-size='19' font-weight='700' letter-spacing='3' fill='%23d9e4e9' fill-opacity='.62'%3EABILART SRLS%3C/text%3E%3C/svg%3E");
+  background-repeat:repeat-y;
+  background-size:794px 1123px;
+  background-position:0 0;
+}
+.pdf-flow-document::after{display:none!important}
+.pdf-flow-document .pdf-page-header,
+.pdf-flow-document .pdf-doc-type,
+.pdf-flow-document .pdf-flow-body,
+.pdf-flow-document .pdf-document-footer{position:relative;z-index:1}
+
+.pdf-cover-header{
+  min-height:154px;
+  margin:0 50px;
+  padding:25px 0 15px!important;
+  border-bottom:2px solid #0a789e!important;
+}
+.pdf-flow-document .pdf-logo{
+  width:148px!important;
+  max-width:148px!important;
+  margin:0 0 8px!important;
+}
+.pdf-company-name{font-size:9px;letter-spacing:.09em;margin-bottom:2px}
+.pdf-flow-document .pdf-company-meta{
+  font-size:6.7px;
+  line-height:1.55;
+  color:#65747d;
+}
+.pdf-flow-document .pdf-meta{
+  width:178px;
+  padding:11px 13px;
+  border-radius:6px;
+  background:#f7fafb;
+  border-color:#d3e0e6;
+  line-height:1.55;
+}
+.pdf-flow-document .pdf-doc-type{
+  margin:0 50px;
+  padding:18px 0 12px;
+  font-size:16.5px;
+  letter-spacing:.045em;
+}
+
+.pdf-flow-body{
+  padding:0 50px 38px;
+  min-height:0;
+  overflow:visible!important;
+}
+.pdf-flow-body>.pdf-title:first-child{margin-top:4px}
+.pdf-flow-body .pdf-title{
+  margin:20px 0 9px;
+  padding:9px 12px 9px 13px;
+  background:#edf5f8;
+  border-left:4px solid #0a789e;
+  border-radius:0 4px 4px 0;
+  color:#075b82;
+  font-size:9.2px;
+  line-height:1.3;
+  font-weight:800;
+  letter-spacing:.065em;
+}
+.pdf-flow-body .pdf-box,
+.pdf-flow-body .pdf-table-wrap,
+.pdf-flow-body .pdf-economy,
+.pdf-flow-body .pdf-terms-box,
+.pdf-flow-body .pdf-signature{
+  box-shadow:0 1px 0 rgba(15,42,54,.025);
+}
+.pdf-flow-body .pdf-box{
+  border:1px solid #d6e1e6;
+  border-radius:7px;
+  background:rgba(255,255,255,.985);
+  padding:13px 15px;
+}
+.pdf-flow-body .pdf-data{
+  font-size:8.25px;
+  line-height:1.52;
+}
+.pdf-flow-body .pdf-data td{padding:6px 8px}
+.pdf-flow-body .pdf-label{
+  display:block;
+  font-size:6.45px;
+  line-height:1.25;
+  letter-spacing:.075em;
+  color:#849198;
+  margin-bottom:4px;
+}
+.pdf-flow-body .pdf-data strong{font-size:9px}
+
+/* Description: generous internal breathing room. The box has no bottom edge,
+   so when the content crosses an A4 boundary it visually continues instead of
+   looking like a broken/cropped card. */
+.pdf-flow-body .pdf-description-flow{
+  margin:0;
+  padding:17px 17px 19px!important;
+  border:1px solid #d6e1e6!important;
+  border-bottom:0!important;
+  border-radius:8px 8px 0 0!important;
+  background:#fff!important;
+  box-shadow:none;
+}
+.pdf-description-content{
+  font-size:9px;
+  line-height:1.62;
+  color:#26333d;
+  overflow:visible!important;
+  letter-spacing:.005em;
+}
+.pdf-description-content p{margin:0 0 9px}
+.pdf-description-content p:last-child{margin-bottom:0}
+.pdf-description-content h1,
+.pdf-description-content h2,
+.pdf-description-content h3{
+  margin:13px 0 6px;
+  line-height:1.25;
+  color:#173f57;
+}
+.pdf-description-content ul,
+.pdf-description-content ol{margin:6px 0 10px;padding-left:21px}
+.pdf-description-content li{margin-bottom:4px}
+.pdf-description-content strong{font-weight:750}
+.pdf-description-content u{text-decoration-thickness:1px;text-underline-offset:1px}
+
+/* A soft continuation rail rather than a hard bottom border. */
+.pdf-flow-body .pdf-description-flow::after,
+.pdf-flow-body .pdf-terms-box::after{
+  content:"";
+  display:block;
+  height:1px;
+  background:#dce6ea;
+  margin:14px -17px -18px;
+}
+
+.pdf-flow-body .pdf-table-wrap{
+  border:1px solid #d6e1e6;
+  border-radius:7px;
+  overflow:visible;
+}
+.pdf-flow-body .pdf-table{font-size:7.65px}
+.pdf-flow-body .pdf-table th{
+  padding:8px 7px;
+  background:#075f83;
+  border-color:#075f83;
+  font-size:7.1px;
+}
+.pdf-flow-body .pdf-table td{padding:7px;border-color:#dbe4e8;line-height:1.4}
+.pdf-flow-body .pdf-table-subtotal{
+  margin:8px 3px 0;
+  padding:0 0 2px;
+  font-size:8.2px;
+}
+
+.pdf-flow-body .pdf-economy{
+  border:1px solid #d6e1e6;
+  border-radius:7px;
+  overflow:hidden;
+}
+.pdf-flow-body .pdf-money td{padding:7px 10px}
+.pdf-flow-body .pdf-total td{padding:9px 10px;font-size:11.5px}
+.pdf-flow-body .pdf-balance td{padding:8px 10px;font-size:8.9px}
+.pdf-flow-body .pdf-payment{gap:12px;margin-top:10px}
+.pdf-flow-body .pdf-payment>div{
+  border:1px solid #d6e1e6;
+  background:#f8fafb;
+  border-radius:6px;
+  padding:9px 11px;
+}
+
+.pdf-flow-body .pdf-terms-box{
+  border:1px solid #d6e1e6!important;
+  border-bottom:0!important;
+  border-radius:8px 8px 0 0!important;
+  background:#fbfcfd;
+  padding:15px 18px 18px;
+  font-size:7.8px;
+  line-height:1.58;
+  color:#414c53;
+}
+.pdf-flow-body .pdf-terms-box ol{margin:0;padding-left:21px}
+.pdf-flow-body .pdf-terms-box li{
+  margin:0 0 9px;
+  padding-left:4px;
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+.pdf-flow-body .pdf-terms-box li:last-child{margin-bottom:0}
+.pdf-flow-body .pdf-terms-box strong{color:#26333d;font-weight:800}
+
+.pdf-flow-body .pdf-acceptance{
+  margin-top:12px;
+  border:1px solid #d6e1e6;
+  background:#f5f9fa;
+  border-radius:6px;
+  padding:10px 12px;
+  font-size:7.45px;
+  line-height:1.5;
+}
+.pdf-flow-body .pdf-signatures{gap:18px;margin-top:20px}
+.pdf-flow-body .pdf-signature{
+  min-height:126px;
+  border:1px solid #d6e1e6;
+  border-radius:7px;
+  padding:12px 14px;
+  background:#fff;
+}
+.pdf-flow-body .pdf-signature img{max-width:200px;max-height:66px;margin:10px 0 4px}
+.pdf-flow-body .pdf-sign-space{height:58px}
+
+.pdf-document-footer{
+  margin:0 50px!important;
+  min-height:44px;
+  height:auto!important;
+  padding:9px 0 3px!important;
+  border-top:1px solid #d7e2e7;
+  font-size:6.2px;
+  line-height:1.4;
+  color:#6d7a82;
+}
+.pdf-document-footer .pdf-footer-brand strong{font-size:6.8px}
+.pdf-document-footer .pdf-footer-brand span{font-size:5.8px}
+
+/* Keep the rendering host outside the visible application without changing
+   the actual A4 geometry. */
+.pdf-render-host{
+  position:absolute;
+  left:0;
+  top:0;
+  width:794px;
+  height:auto;
+  z-index:2147483647;
+  background:#fff;
+  pointer-events:none;
+  overflow:visible;
+}

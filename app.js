@@ -357,43 +357,64 @@ function sleepFrame(){ return new Promise(resolve=>requestAnimationFrame(()=>req
 function stabilizeFlowBreaks(doc){
   const pageHeight=1123;
   const root=doc.getBoundingClientRect();
-  // Keep headings with the beginning of their section. Long description and
-  // terms boxes remain splittable; only their headings are protected.
-  doc.querySelectorAll('.pdf-title').forEach(title=>{
-    const r=title.getBoundingClientRect();
+  const topGap=30;
+  const bottomGap=34;
+
+  const pagePosOf=el=>{
+    const r=el.getBoundingClientRect();
     const top=r.top-root.top;
-    const pagePos=top%pageHeight;
+    const pagePos=((top % pageHeight)+pageHeight)%pageHeight;
+    return {r,top,pagePos,remaining:pageHeight-pagePos};
+  };
+
+  const pushBy=el=>{
+    const current=parseFloat(getComputedStyle(el).marginTop)||0;
+    const info=pagePosOf(el);
+    const amount=info.remaining+topGap;
+    el.style.marginTop=`${current+amount}px`;
+  };
+
+  // Keep section title + first content block together whenever possible.
+  doc.querySelectorAll('.pdf-title').forEach(title=>{
     const next=title.nextElementSibling;
-    const nextH=next ? next.getBoundingClientRect().height : 0;
-    const needed=Math.min(150, Math.max(58,nextH>0 ? 58 : 0));
-    if(pagePos > pageHeight-needed){
-      const push=pageHeight-pagePos+8;
-      title.style.marginTop=`${16+push}px`;
-    }
+    if(!next) return;
+    const t=pagePosOf(title);
+    const n=next.getBoundingClientRect().height;
+    const required=t.r.height + 9 + Math.min(n, pageHeight-2*topGap);
+    if(t.pagePos>topGap && t.remaining < required + bottomGap) pushBy(title);
   });
 
-  // Signatures should never begin in the last few millimetres of a page.
-  doc.querySelectorAll('.pdf-signatures').forEach(box=>{
-    const r=box.getBoundingClientRect();
-    const top=r.top-root.top;
-    const pagePos=top%pageHeight;
-    if(pagePos > pageHeight-145){
-      box.style.marginTop=`${18 + (pageHeight-pagePos+8)}px`;
-    }
+  // Compact cards should not start with only a few pixels left on the page.
+  doc.querySelectorAll('.pdf-client-box, .pdf-flow-body > .pdf-box:not(.pdf-description-flow), .pdf-table-wrap, .pdf-economy, .pdf-payment, .pdf-acceptance, .pdf-signatures').forEach(box=>{
+    const info=pagePosOf(box);
+    const h=info.r.height;
+    if(info.pagePos>topGap && info.remaining < Math.min(h+bottomGap, pageHeight-topGap)) pushBy(box);
+  });
+
+  // Keep paragraphs, headings and individual condition clauses intact.
+  // The complete description/terms container itself remains splittable.
+  doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-terms-box li').forEach(block=>{
+    const info=pagePosOf(block);
+    const h=info.r.height;
+    if(info.pagePos>topGap && h < pageHeight-2*topGap && info.remaining < h+bottomGap) pushBy(block);
+  });
+
+  // Never leave a table row half-visible when it can be moved as a unit.
+  doc.querySelectorAll('.pdf-table tbody tr').forEach(row=>{
+    const info=pagePosOf(row);
+    if(info.pagePos>topGap && info.remaining < info.r.height+24) pushBy(row);
   });
 }
 
 
 function addPdfWatermark(pdf,pageIndex,total,title){
-  if(pageIndex===0) return;
+  // The watermark itself lives in the PDF DOM background, underneath the text.
+  // Here we only add the page counter in the safe bottom margin.
   pdf.saveGraphicsState();
-  pdf.setTextColor(225,231,234);
-  pdf.setFont('helvetica','bold');
-  pdf.setFontSize(30);
-  pdf.text('ABILART SRLS',105,155,{align:'center',angle:45});
-  pdf.setTextColor(115,128,136);
-  pdf.setFontSize(7);
-  pdf.text(`${title}  •  PAGINA ${pageIndex+1} / ${total}`,198,289,{align:'right'});
+  pdf.setTextColor(128,143,151);
+  pdf.setFont('helvetica','normal');
+  pdf.setFontSize(6.5);
+  pdf.text(`${title}  •  PAGINA ${pageIndex+1} / ${total}`,198,291,{align:'right'});
   pdf.restoreGraphicsState();
 }
 
@@ -416,78 +437,109 @@ async function downloadPDF(html, filename){
     alert('Il motore PDF non è stato caricato. Controlla la connessione Internet e ricarica la pagina.');
     return;
   }
+
   const holder=document.createElement('div');
   holder.className='pdf-render-host';
   holder.innerHTML=html;
   document.body.appendChild(holder);
   document.body.classList.add('pdf-rendering');
+
   try{
     const doc=holder.querySelector('.pdf-flow-document');
     const {jsPDF}=window.jspdf;
-    await sleepFrame();
     if(!doc) throw new Error('Documento PDF non trovato');
+
     doc.style.width='794px';
     doc.style.height='auto';
     doc.style.minHeight='0';
     doc.style.overflow='visible';
+
     await document.fonts?.ready;
     await sleepFrame();
     stabilizeFlowBreaks(doc);
     await sleepFrame();
 
+    /*
+      IMPORTANTISSIMO:
+      non renderizziamo una pagina alla volta con html2canvas.
+      html2canvas puo' infatti ricomputare il viewport/crop e duplicare
+      porzioni del documento. Renderizziamo UNA SOLA VOLTA il flusso
+      completo e poi ritagliamo il canvas in pagine A4.
+    */
+    const cssWidth=794;
+    const cssPageHeight=1123;
     const fullHeight=Math.ceil(doc.scrollHeight);
-    const firstPageBodyTop=doc.querySelector('.pdf-flow-body')?.getBoundingClientRect().top - doc.getBoundingClientRect().top || 0;
-    const pageHeight=1123;
-    const totalPages=Math.max(1,Math.ceil(fullHeight/pageHeight));
+    const renderScale=1.5;
+    const totalPages=Math.max(1,Math.ceil(fullHeight/cssPageHeight));
+
+    const fullCanvas=await html2canvas(doc,{
+      width:cssWidth,
+      height:fullHeight,
+      windowWidth:cssWidth,
+      windowHeight:Math.min(fullHeight,3000),
+      x:0,
+      y:0,
+      scale:renderScale,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      scrollX:0,
+      scrollY:0,
+      imageTimeout:15000
+    });
+
     const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true,putOnlyUsedFonts:true});
     const title=doc.querySelector('.pdf-doc-type')?.textContent?.trim()||'DOCUMENTO';
 
-    for(let i=0;i<totalPages;i++){
-      const y=i*pageHeight;
-      const canvas=await html2canvas(doc,{
-        width:794,
-        height:pageHeight,
-        windowWidth:794,
-        windowHeight:pageHeight,
-        x:0,
-        y,
-        scale:2,
-        useCORS:true,
-        allowTaint:true,
-        backgroundColor:'#ffffff',
-        logging:false,
-        scrollX:0,
-        scrollY:0,
-        imageTimeout:15000
-      });
-      if(i>0) pdf.addPage('a4','portrait');
-      pdf.addImage(canvas.toDataURL('image/jpeg',0.97),'JPEG',0,0,210,297,undefined,'FAST');
-      addPdfWatermark(pdf,i,totalPages,title);
+    for(let page=0; page<totalPages; page++){
+      const sourceY=page*cssPageHeight*renderScale;
+      const remaining=Math.min(cssPageHeight, fullHeight-page*cssPageHeight);
+      if(remaining<=0) continue;
+
+      const crop=document.createElement('canvas');
+      crop.width=Math.round(cssWidth*renderScale);
+      crop.height=Math.round(cssPageHeight*renderScale);
+      const ctx=crop.getContext('2d');
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,crop.width,crop.height);
+      ctx.drawImage(
+        fullCanvas,
+        0, sourceY,
+        fullCanvas.width, Math.round(remaining*renderScale),
+        0, 0,
+        crop.width, Math.round(remaining*renderScale)
+      );
+
+      if(page>0) pdf.addPage('a4','portrait');
+      pdf.addImage(crop.toDataURL('image/jpeg',0.96),'JPEG',0,0,210,297,undefined,'FAST');
+      addPdfWatermark(pdf,page,totalPages,title);
     }
 
-    // Re-add links by mapping each anchor to its page based on its real DOM Y position.
+    // Link cliccabili: vengono ricostruiti sopra l'immagine, pagina per pagina.
     const docRect=doc.getBoundingClientRect();
-    const mmX=210/794, mmY=297/1123;
+    const mmX=210/cssWidth, mmY=297/cssPageHeight;
     doc.querySelectorAll('[data-pdf-link]').forEach(el=>{
       const r=el.getBoundingClientRect();
       const top=r.top-docRect.top, bottom=r.bottom-docRect.top;
-      const first=Math.floor(Math.max(0,top)/pageHeight), last=Math.floor(Math.max(0,bottom-0.5)/pageHeight);
+      const first=Math.floor(Math.max(0,top)/cssPageHeight);
+      const last=Math.floor(Math.max(0,bottom-0.5)/cssPageHeight);
       for(let page=first;page<=last && page<totalPages;page++){
-        const pageTop=page*pageHeight;
+        const pageTop=page*cssPageHeight;
         const visibleTop=Math.max(top,pageTop);
-        const visibleBottom=Math.min(bottom,pageTop+pageHeight);
+        const visibleBottom=Math.min(bottom,pageTop+cssPageHeight);
         if(visibleBottom<=visibleTop) continue;
         const x=(r.left-docRect.left)*mmX;
         const y=(visibleTop-pageTop)*mmY;
         const w=Math.max(2,r.width*mmX);
         const h=Math.max(3,(visibleBottom-visibleTop)*mmY);
-        const url=el.href;
-        if(url){
+        if(el.href){
           pdf.setPage(page+1);
-          pdf.link(x,y,w,h,{url});
+          pdf.link(x,y,w,h,{url:el.href});
         }
       }
     });
+
     pdf.save(filename);
   }catch(err){
     console.error('Errore generazione PDF:',err);
@@ -497,7 +549,6 @@ async function downloadPDF(html, filename){
     holder.remove();
   }
 }
-
 $('#service-form').addEventListener('submit',async e=>{
   e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
   const name=$('#s-name').value.trim().replace(/\s+/g,'_')||'Cliente';

@@ -535,3 +535,58 @@ body.pdf-rendering{overflow:hidden!important}
   pointer-events:none;
   overflow:visible;
 }
+
+
+/* =========================================================
+   FINAL PAGINATION POLISH — SAFE PAGE BREATHING / BACKGROUND
+   ========================================================= */
+.pdf-flow-document{
+  background-color:#fff;
+}
+/* True background watermark layer: below every piece of document content. */
+.pdf-flow-document::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='794' height='1123' viewBox='0 0 794 1123'%3E%3Cg transform='translate(397 590) rotate(-35)'%3E%3Ctext x='0' y='0' text-anchor='middle' font-family='Arial,sans-serif' font-size='30' font-weight='700' letter-spacing='3' fill='%23075f83' fill-opacity='.075'%3EABILART SRLS%3C/text%3E%3C/g%3E%3C/svg%3E");
+  background-repeat:repeat-y;
+  background-size:794px 1123px;
+  background-position:0 0;
+}
+.pdf-flow-document .pdf-page-header,
+.pdf-flow-document .pdf-doc-type,
+.pdf-flow-document .pdf-flow-body,
+.pdf-flow-document .pdf-document-footer{
+  z-index:1;
+}
+
+/* Slightly larger visual breathing room without wasting A4 space. */
+.pdf-flow-body{padding-left:50px!important;padding-right:50px!important;padding-bottom:42px!important}
+.pdf-flow-body .pdf-title{margin-top:23px;margin-bottom:11px}
+.pdf-flow-body .pdf-box{padding:14px 16px}
+.pdf-flow-body .pdf-data td{padding:7px 9px}
+.pdf-flow-body .pdf-description-flow{padding:19px 19px 21px!important}
+.pdf-description-content{font-size:9.15px;line-height:1.68}
+.pdf-description-content p{margin-bottom:11px}
+.pdf-description-content h1,.pdf-description-content h2,.pdf-description-content h3{margin-top:15px;margin-bottom:7px}
+.pdf-description-content ul,.pdf-description-content ol{margin-top:7px;margin-bottom:12px}
+.pdf-description-content li{margin-bottom:5px}
+.pdf-flow-body .pdf-terms-box{padding:17px 20px 20px}
+.pdf-flow-body .pdf-terms-box li{margin-bottom:10px;line-height:1.62}
+.pdf-flow-body .pdf-acceptance{margin-top:14px;padding:11px 13px}
+.pdf-flow-body .pdf-signatures{margin-top:22px;gap:20px}
+.pdf-flow-body .pdf-signature{min-height:130px;padding:13px 15px}
+
+/* Footer is visually a final-page footer; JS computes the exact bottom position. */
+.pdf-document-footer{
+  margin-left:50px!important;
+  margin-right:50px!important;
+  padding:10px 0 5px!important;
+  min-height:46px;
+  box-sizing:border-box;
+}
+
+/* Do not allow browser print rules or old pseudo layers to create a second watermark. */
+.pdf-flow-document::after{display:none!important;content:none!important}

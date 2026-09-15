@@ -357,8 +357,8 @@ function sleepFrame(){ return new Promise(resolve=>requestAnimationFrame(()=>req
 function stabilizeFlowBreaks(doc){
   const pageHeight=1123;
   const root=doc.getBoundingClientRect();
-  const topGap=30;
-  const bottomGap=34;
+  const topGap=34;
+  const bottomGap=42;
 
   const pagePosOf=el=>{
     const r=el.getBoundingClientRect();
@@ -370,46 +370,63 @@ function stabilizeFlowBreaks(doc){
   const pushBy=el=>{
     const current=parseFloat(getComputedStyle(el).marginTop)||0;
     const info=pagePosOf(el);
-    const amount=info.remaining+topGap;
+    const amount=Math.max(0, info.remaining+topGap);
     el.style.marginTop=`${current+amount}px`;
   };
 
-  // Keep section title + first content block together whenever possible.
+  // Keep section title + following block together whenever the whole block fits.
   doc.querySelectorAll('.pdf-title').forEach(title=>{
     const next=title.nextElementSibling;
     if(!next) return;
     const t=pagePosOf(title);
     const n=next.getBoundingClientRect().height;
-    const required=t.r.height + 9 + Math.min(n, pageHeight-2*topGap);
+    const required=t.r.height + 11 + Math.min(n, pageHeight-2*topGap);
     if(t.pagePos>topGap && t.remaining < required + bottomGap) pushBy(title);
   });
 
-  // Compact cards should not start with only a few pixels left on the page.
+  // Keep compact blocks off the very bottom of a page.
   doc.querySelectorAll('.pdf-client-box, .pdf-flow-body > .pdf-box:not(.pdf-description-flow), .pdf-table-wrap, .pdf-economy, .pdf-payment, .pdf-acceptance, .pdf-signatures').forEach(box=>{
     const info=pagePosOf(box);
     const h=info.r.height;
     if(info.pagePos>topGap && info.remaining < Math.min(h+bottomGap, pageHeight-topGap)) pushBy(box);
   });
 
-  // Keep paragraphs, headings and individual condition clauses intact.
-  // The complete description/terms container itself remains splittable.
+  // Preserve paragraph/list/heading spacing. A complete paragraph/list moves as a unit.
   doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-terms-box li').forEach(block=>{
     const info=pagePosOf(block);
     const h=info.r.height;
     if(info.pagePos>topGap && h < pageHeight-2*topGap && info.remaining < h+bottomGap) pushBy(block);
   });
 
-  // Never leave a table row half-visible when it can be moved as a unit.
+  // Never split a table row when it can be moved to the next page.
   doc.querySelectorAll('.pdf-table tbody tr').forEach(row=>{
     const info=pagePosOf(row);
-    if(info.pagePos>topGap && info.remaining < info.r.height+24) pushBy(row);
+    if(info.pagePos>topGap && info.remaining < info.r.height+bottomGap) pushBy(row);
   });
+}
+
+function pinFooterToLastPage(doc){
+  const footer=doc.querySelector('.pdf-document-footer');
+  const body=doc.querySelector('.pdf-flow-body');
+  if(!footer || !body) return;
+
+  const root=doc.getBoundingClientRect();
+  const footerRect=footer.getBoundingClientRect();
+  const bodyRect=body.getBoundingClientRect();
+  const pageHeight=1123;
+  const bottomSafe=28;
+  const currentTop=footerRect.top-root.top;
+  const bodyBottom=bodyRect.bottom-root.top;
+  const lastPage=Math.max(0,Math.floor(Math.max(0,bodyBottom-1)/pageHeight));
+  const targetTop=lastPage*pageHeight + pageHeight - footerRect.height - bottomSafe;
+  const extra=Math.max(0,targetTop-currentTop);
+  footer.style.marginTop=`${extra}px`;
 }
 
 
 function addPdfWatermark(pdf,pageIndex,total,title){
-  // The watermark itself lives in the PDF DOM background, underneath the text.
-  // Here we only add the page counter in the safe bottom margin.
+  // Watermark is already baked into the document BACKGROUND by html2canvas.
+  // Only the page number is added here, in the safe bottom margin.
   pdf.saveGraphicsState();
   pdf.setTextColor(128,143,151);
   pdf.setFont('helvetica','normal');
@@ -457,6 +474,8 @@ async function downloadPDF(html, filename){
     await document.fonts?.ready;
     await sleepFrame();
     stabilizeFlowBreaks(doc);
+    await sleepFrame();
+    pinFooterToLastPage(doc);
     await sleepFrame();
 
     /*

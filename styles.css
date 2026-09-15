@@ -65,12 +65,12 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-page:last-child{page-break-after:auto;break-after:auto}
 /* The A4 page is divided into three physical zones: header, body and footer.
    The body is never allowed to occupy the header/footer reserved areas. */
-.pdf-page-header{height:108px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0a789e;padding-bottom:12px}
+.pdf-page-header{height:132px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0a789e;padding-bottom:12px}
 .pdf-company{padding-top:0;min-width:0;display:flex;flex-direction:column;align-items:flex-start}
 .pdf-logo{
-    width:150px !important;
+    width:135px !important;
     height:auto !important;
-    max-width:150px !important;
+    max-width:135px !important;
     max-height:68px !important;
     min-width:0 !important;
     min-height:0 !important;
@@ -87,7 +87,7 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-doc-type{height:31px;box-sizing:border-box;font-size:14px;font-weight:800;color:#173f57;text-transform:uppercase;letter-spacing:.03em;margin-top:12px;line-height:19px}
 .pdf-page-body{
   box-sizing:border-box;
-  height:900px; /* 1123 - 34 top padding - 108 header - 31 document title - 16 bottom padding - 34 footer */
+  height:876px; /* 1123 - 34 top padding - 132 header - 31 document title - 16 bottom padding - 34 footer */
   min-height:0;
   padding-top:5px;
   overflow:hidden;
@@ -113,7 +113,7 @@ body.pdf-rendering{overflow:hidden!important}
   border-top:1px solid #d8e2e7;
   padding-top:6px;
   display:grid;
-  grid-template-columns:1.15fr 1.55fr 1.35fr auto;
+  grid-template-columns:1.15fr 1.55fr 1.35fr 1.2fr;
   align-items:center;
   gap:10px;
   font-size:6.2px;
@@ -127,6 +127,7 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-footer-contact,.pdf-footer-sites{display:flex;flex-direction:column;gap:2px}
 .pdf-footer-sites{align-items:flex-start}
 .pdf-footer-copy{font-size:5.8px;color:#9aa5aa;text-align:right}
+.pdf-footer-address{font-size:5.8px;color:#63727b;text-decoration:none;text-align:right;align-self:center}.pdf-footer-address:hover{text-decoration:underline}
 @media print{body{background:#fff}.site-header,.site-footer,.app-shell{display:none!important}.pdf-render-host{position:static!important}.pdf-page{margin:0!important}}
 @media(max-width:760px){.quote-choice-grid{grid-template-columns:1fr}.field-row{flex-direction:column;gap:0}.field.small,.field.narrow{flex:auto}.hero h1{font-size:31px}.form-card{padding:18px}.site-header{padding:18px}.app-shell{padding:22px 12px 45px}}
 @media print{body{background:#fff}.site-header,.site-footer,.app-shell{display:none!important}.pdf-document{display:block!important}}
@@ -182,5 +183,12 @@ body.pdf-rendering{overflow:hidden!important}
 
 /* Final logo/footer polish */
 .pdf-page-header .pdf-company{width:430px}
-.pdf-company-meta{margin-top:5px!important}
+.pdf-company-info{margin-top:5px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;font-size:6.8px;line-height:1.25;color:#68767e;white-space:nowrap}
+.pdf-company-info strong{font-size:7.6px;letter-spacing:.05em;color:#173f57}
+.pdf-company-info a{color:#3f6575;text-decoration:none}
+.pdf-company-info a:hover{text-decoration:underline}
+.pdf-company-links{display:flex;gap:7px;align-items:center}
+.pdf-company-links a{display:inline-block}
 .pdf-footer a:hover{text-decoration:underline}
+
+.pdf-data-link{color:#3f6575;text-decoration:none}.pdf-data-link:hover{text-decoration:underline}

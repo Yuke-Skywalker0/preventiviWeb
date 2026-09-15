@@ -184,11 +184,37 @@ function docNumber(prefix='PREV'){
   return `${prefix}-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 }
 
+
+function telHref(value){
+  const digits=String(value||'').replace(/[^0-9+]/g,'');
+  return digits ? `tel:${digits}` : '';
+}
+
+function mailHref(value){
+  const email=String(value||'').trim();
+  return email ? `mailto:${encodeURIComponent(email)}` : '';
+}
+
+function mapsHref(address, zip, city){
+  const text=[address,zip,city].filter(Boolean).join(', ');
+  return text ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}` : '';
+}
+
 function pdfPageHeader(title, number, date, pageLabel=''){
   return `<div class="pdf-page-header">
     <div class="pdf-company">
       <img class="pdf-logo" src="assets/abilart-logo.png" alt="Abilart Srls">
-      <div class="pdf-company-meta">Sede Legale: Lissone (MB) &nbsp;|&nbsp; Michele, Il tuo Tecnico</div>
+      <div class="pdf-company-info">
+        <strong>ABILART SRLS</strong>
+        <span>P. IVA / C.F. 10439280966</span>
+        <a href="https://www.google.com/maps/search/?api=1&query=Via+Caprera+2%2C+20851+Lissone+MB" data-pdf-link="address">Via Caprera 2, 20851 Lissone (MB)</a>
+        <span>Zone operative: Monza, Milano, Bergamo e relative province</span>
+        <span class="pdf-company-links">
+          <a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a>
+          <a href="https://wa.me/393204295445" data-pdf-link="whatsapp">WhatsApp</a>
+          <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a>
+        </span>
+      </div>
     </div>
     <div class="pdf-meta">
       <span>DOCUMENTO NUMERO</span>
@@ -205,6 +231,12 @@ function pdfSectionTitle(title){
 }
 
 function pdfClientBox(data){
+  const phone=escapeHtml(data.phone||'—');
+  const email=escapeHtml(data.email||'—');
+  const phoneHref=telHref(data.phone);
+  const emailHref=mailHref(data.email);
+  const addressText=[data.address, data.zip, data.city].filter(Boolean).join(', ');
+  const addressHref=mapsHref(data.address,data.zip,data.city);
   return `<div class="pdf-box">
     <table class="pdf-data">
       <tr>
@@ -212,8 +244,8 @@ function pdfClientBox(data){
         <td><span class="pdf-label">CODICE FISCALE / PARTITA IVA</span>${escapeHtml(data.tax||'—')}</td>
       </tr>
       <tr>
-        <td><span class="pdf-label">INDIRIZZO</span>${escapeHtml(data.address||'—')}${data.zip||data.city?`, ${escapeHtml(data.zip||'')} ${escapeHtml(data.city||'')}`:''}</td>
-        <td><span class="pdf-label">CONTATTI</span>${escapeHtml(data.phone||'—')} &nbsp;|&nbsp; ${escapeHtml(data.email||'—')}</td>
+        <td><span class="pdf-label">INDIRIZZO</span>${addressHref && addressText ? `<a class="pdf-data-link" href="${addressHref}" data-pdf-link="client-address">${escapeHtml(addressText)}</a>` : escapeHtml(addressText||'—')}</td>
+        <td><span class="pdf-label">CONTATTI</span>${phoneHref ? `<a class="pdf-data-link" href="${phoneHref}" data-pdf-link="client-phone">${phone}</a>` : phone} &nbsp;|&nbsp; ${emailHref ? `<a class="pdf-data-link" href="${emailHref}" data-pdf-link="client-email">${email}</a>` : email}</td>
       </tr>
       ${data.reference!==undefined?`<tr><td colspan="2"><span class="pdf-label">RIFERIMENTO CANTIERE / INTERNO / SCALA</span>${escapeHtml(data.reference||'—')}</td></tr>`:''}
     </table>
@@ -247,17 +279,18 @@ function pdfFooter(){
   return `<div class="pdf-footer">
     <div class="pdf-footer-brand">
       <strong>ABILART SRLS</strong>
-      <span>Soluzioni Artigiane d'Eccellenza</span>
+      <span>P. IVA / C.F. 10439280966</span>
     </div>
     <div class="pdf-footer-contact">
       <a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a>
+      <a href="https://wa.me/393204295445" data-pdf-link="whatsapp">WhatsApp</a>
       <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a>
     </div>
     <div class="pdf-footer-sites">
       <a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a>
       <a href="https://idraulicoservizi.com/" data-pdf-link="site2">idraulicoservizi.com</a>
     </div>
-    <span class="pdf-footer-copy">© ${new Date().getFullYear()}</span>
+    <a class="pdf-footer-address" href="https://www.google.com/maps/search/?api=1&query=Via+Caprera+2%2C+20851+Lissone+MB" data-pdf-link="address">Via Caprera 2 · Lissone (MB)</a>
   </div>`;
 }
 
@@ -442,13 +475,21 @@ async function downloadPDF(html, filename){
       if(i>0) pdf.addPage('a4','portrait');
       pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');
 
-      // Real PDF annotations over the footer text.
-      // Coordinates are aligned to the A4 footer layout above.
-      const fy = 282.6, fh = 7.0;
-      pdf.link(50,  fy, 40, fh, { url: 'tel:+393204295445' });
-      pdf.link(92,  fy, 58, fh, { url: 'mailto:abilart.impresaedile@gmail.com' });
-      pdf.link(151, fy, 29, fh, { url: 'https://impresaedileabilart.com/' });
-      pdf.link(181, fy, 22, fh, { url: 'https://idraulicoservizi.com/' });
+      // Create real PDF annotations from the actual DOM positions.
+      // This keeps every clickable area aligned even when the header/footer changes.
+      const pageRect = page.getBoundingClientRect();
+      const pxToMmX = 210 / 794;
+      const pxToMmY = 297 / 1123;
+      page.querySelectorAll('[data-pdf-link]').forEach(el => {
+        const href = el.getAttribute('href');
+        if(!href) return;
+        const r = el.getBoundingClientRect();
+        const x = Math.max(0, (r.left - pageRect.left - 1) * pxToMmX);
+        const y = Math.max(0, (r.top - pageRect.top - 1) * pxToMmY);
+        const w = Math.min(210 - x, Math.max(2, (r.width + 2) * pxToMmX));
+        const h = Math.min(297 - y, Math.max(3, (r.height + 2) * pxToMmY));
+        pdf.link(x, y, w, h, { url: href });
+      });
     }
 
     pdf.save(filename);

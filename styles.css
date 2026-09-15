@@ -300,10 +300,9 @@ body.pdf-rendering{overflow:hidden!important}
   margin:0;
   padding:0;
   background-color:#fff;
-  /* Watermark is a BACKGROUND layer, never an HTML layer above text. */
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='794' height='1123' viewBox='0 0 794 1123'%3E%3Ctext x='750' y='610' transform='rotate(-90 750 610)' font-family='Arial,sans-serif' font-size='19' font-weight='700' letter-spacing='3' fill='%23d9e4e9' fill-opacity='.62'%3EABILART SRLS%3C/text%3E%3C/svg%3E");
-  background-repeat:repeat-y;
-  background-size:794px 1123px;
+  background-image:none;
+  background-repeat:no-repeat;
+  background-size:auto;
   background-position:0 0;
 }
 .pdf-flow-document::after{display:none!important}
@@ -510,7 +509,7 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-flow-body .pdf-sign-space{height:58px}
 
 .pdf-document-footer{
-  margin:0 50px!important;
+  margin-left:50px!important; margin-right:50px!important; margin-top:0;
   min-height:44px;
   height:auto!important;
   padding:9px 0 3px!important;
@@ -543,18 +542,7 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-flow-document{
   background-color:#fff;
 }
-/* True background watermark layer: below every piece of document content. */
-.pdf-flow-document::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  z-index:0;
-  pointer-events:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='794' height='1123' viewBox='0 0 794 1123'%3E%3Cg transform='translate(397 590) rotate(-35)'%3E%3Ctext x='0' y='0' text-anchor='middle' font-family='Arial,sans-serif' font-size='30' font-weight='700' letter-spacing='3' fill='%23075f83' fill-opacity='.075'%3EABILART SRLS%3C/text%3E%3C/g%3E%3C/svg%3E");
-  background-repeat:repeat-y;
-  background-size:794px 1123px;
-  background-position:0 0;
-}
+.pdf-flow-document::before{display:none!important;content:none!important}
 .pdf-flow-document .pdf-page-header,
 .pdf-flow-document .pdf-doc-type,
 .pdf-flow-document .pdf-flow-body,
@@ -590,3 +578,69 @@ body.pdf-rendering{overflow:hidden!important}
 
 /* Do not allow browser print rules or old pseudo layers to create a second watermark. */
 .pdf-flow-document::after{display:none!important;content:none!important}
+
+/* =========================================================
+   V4 FINAL VISUAL / PAGINATION PASS
+   ========================================================= */
+.pdf-flow-document{
+  /* One, and only one, watermark: a true paint-time background layer. */
+  background-color:#fff!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='794' height='1123' viewBox='0 0 794 1123'%3E%3Cg transform='translate(397 595) rotate(-35)'%3E%3Ctext x='0' y='0' text-anchor='middle' font-family='Arial,sans-serif' font-size='28' font-weight='700' letter-spacing='3' fill='%23075f83' fill-opacity='.035'%3EABILART SRLS%3C/text%3E%3C/g%3E%3C/svg%3E")!important;
+  background-repeat:repeat-y!important;
+  background-size:794px 1123px!important;
+  background-position:0 0!important;
+}
+.pdf-flow-document::before,
+.pdf-flow-document::after{display:none!important;content:none!important}
+
+/* A little more breathing room, without creating artificial empty pages. */
+.pdf-flow-body{padding-top:1px!important;padding-bottom:30px!important}
+.pdf-flow-body .pdf-title{margin-top:21px;margin-bottom:10px}
+.pdf-flow-body .pdf-box{padding:13px 15px}
+.pdf-flow-body .pdf-description-flow{padding:18px 18px 20px!important}
+.pdf-description-content{font-size:9.05px;line-height:1.64}
+.pdf-description-content p{margin-bottom:9px}
+.pdf-description-content h1,.pdf-description-content h2,.pdf-description-content h3{margin-top:13px;margin-bottom:6px}
+.pdf-description-content ul,.pdf-description-content ol{margin-top:6px;margin-bottom:10px}
+.pdf-description-content li{margin-bottom:4px}
+.pdf-flow-body .pdf-terms-box{padding:16px 19px 18px}
+.pdf-flow-body .pdf-terms-box li{margin-bottom:9px;line-height:1.58}
+.pdf-flow-body .pdf-signatures{margin-top:20px}
+
+/* The footer is allowed to receive the JS-calculated margin-top. Do not use
+   a shorthand !important here, otherwise the inline pinning value is ignored. */
+.pdf-document-footer{
+  margin-left:50px!important;
+  margin-right:50px!important;
+  margin-top:0;
+  min-height:46px;
+  height:auto!important;
+  padding:10px 0 5px!important;
+}
+.pdf-document-footer .pdf-footer-contact{display:flex;flex-direction:column;gap:2px}
+.pdf-document-footer a{color:#315f78;text-decoration:none}
+.pdf-document-footer a:hover{text-decoration:underline}
+.pdf-flow-document .pdf-company-meta a{color:#315f78;text-decoration:none}
+
+/* Keep compact semantic units together where they fit. */
+.pdf-client-box,
+.pdf-economy,
+.pdf-payment,
+.pdf-acceptance,
+.pdf-signatures{break-inside:avoid-page;page-break-inside:avoid}
+.pdf-table tbody tr{break-inside:avoid-page;page-break-inside:avoid}
+.pdf-terms-box li{break-inside:avoid-page;page-break-inside:avoid}
+
+/* Continuation edges stay clean: no heavy closed border across a page cut. */
+.pdf-description-flow,
+.pdf-terms-box{break-inside:auto;overflow:visible}
+
+/* Typographic pagination: avoid isolated lines at the top/bottom of fragments. */
+.pdf-description-content,
+.pdf-description-content p,
+.pdf-description-content li,
+.pdf-terms-box,
+.pdf-terms-box li{
+  orphans:3;
+  widows:3;
+}

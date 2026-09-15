@@ -1,96 +1,123 @@
 # Abilart Preventivi — GitHub Pages
 
+Generatore frontend-only per i due documenti Abilart:
+
+- **Preventivo / Contratto** — interventi tecnici e servizi.
+- **Preventivo Edile** — lavori edili, ristrutturazioni e dettaglio delle lavorazioni.
+
 ## Struttura
 
-- `index.html` — interfaccia e i due tipi di preventivo
-- `styles.css` — tutto il design del sito e del documento PDF
-- `app.js` — editor, firma, calcoli, tabella e generazione PDF
+- `index.html` — interfaccia, moduli, condizioni contrattuali e configurazione delle librerie PDF.
+- `styles.css` — interfaccia web e impaginazione A4 del PDF.
+- `app.js` — editor, firme, calcoli, tabella lavorazioni, paginazione, link PDF e download.
+- `assets/abilart-logo.png` — logo aziendale.
 
 ## Pubblicazione su GitHub Pages
 
-1. Crea un nuovo repository GitHub, ad esempio `abilart-preventivi`.
-2. Carica nella root del repository:
-   - `index.html`
-   - `styles.css`
-   - `app.js`
+1. Crea un repository GitHub.
+2. Carica tutti i file e la cartella `assets` nella root.
 3. Vai in **Settings → Pages**.
-4. In **Build and deployment** seleziona:
-   - Source: **Deploy from a branch**
-   - Branch: `main`
-   - Folder: `/ (root)`
-5. Salva.
-6. Dopo la pubblicazione GitHub mostrerà l'indirizzo del sito.
+4. In **Build and deployment** seleziona **Deploy from a branch**.
+5. Seleziona `main` e `/ (root)`.
+6. Salva e attendi la pubblicazione.
 
-## Come funziona
+## Generazione PDF
 
-La pagina iniziale permette di scegliere:
+Il PDF viene generato **interamente nel browser** e scaricato localmente. Il progetto non utilizza un backend e non invia i dati del preventivo a un server Abilart.
 
-- Preventivo / Contratto
-- Preventivo Edile
+Il motore usa:
 
-Ogni schermata ha il pulsante "Torna indietro".
+- `html2canvas 1.4.1`
+- `jsPDF 2.5.1`
 
-Il PDF viene generato **nel browser** e scaricato localmente nella cartella Download del computer. Non vengono inviati dati a un backend dal codice presente in questo progetto.
+Le librerie sono caricate da cdnjs con versioni bloccate e Subresource Integrity (SRI). Per la generazione PDF è quindi necessaria una connessione Internet.
 
-Il motore PDF è `html2pdf.js`, caricato da jsDelivr nella pagina. Per generare il PDF è quindi necessaria una connessione Internet.
+Il documento viene composto come un unico flusso verticale A4 a lunghezza variabile e successivamente suddiviso in pagine. Questo evita la perdita di testo nei preventivi lunghi.
+
+## Paginazione e impaginazione
+
+La logica PDF è progettata per:
+
+- mantenere margini A4 sicuri;
+- evitare titoli isolati in fondo pagina;
+- mantenere insieme box compatti quando entrano nello spazio disponibile;
+- lasciare che descrizione e condizioni generali continuino naturalmente sulla pagina successiva;
+- evitare, quando possibile, la divisione delle singole righe della tabella;
+- mantenere le firme nello stesso blocco;
+- agganciare il footer al fondo dell'ultima pagina realmente utilizzata quando lo spazio lo consente;
+- creare una nuova pagina solo quando il contenuto non lascia spazio sufficiente per il footer;
+- usare una filigrana molto discreta come **background**, sotto il contenuto e non come elemento sovrapposto al testo.
+
+Il footer non viene ripetuto automaticamente su ogni pagina: viene posizionato nell'ultima pagina disponibile, come richiesto.
 
 ## Calcoli
 
 ### Preventivo / Contratto
 
-- Imponibile = prezzo inserito
-- IVA = imponibile × IVA / 100
-- Totale = imponibile + IVA
-- Saldo = totale − acconto
-- Un acconto superiore al totale non produce un saldo negativo.
+- Imponibile = prezzo inserito.
+- IVA = imponibile × IVA / 100.
+- Totale = imponibile + IVA.
+- Saldo = totale − acconto, senza valori negativi.
 
 ### Preventivo Edile
 
-- Sconto limitato all'imponibile
-- Imponibile netto = imponibile − sconto
-- IVA = imponibile netto × IVA / 100
-- Totale = imponibile netto + IVA
-- Saldo = totale − acconto
-- La tabella delle lavorazioni calcola ogni riga come quantità × prezzo unitario e mostra il subtotale.
+- Sconto limitato all'imponibile.
+- Imponibile netto = imponibile − sconto.
+- IVA = imponibile netto × IVA / 100.
+- Totale = imponibile netto + IVA.
+- Saldo = totale − acconto, senza valori negativi.
+- Ogni riga della tabella = quantità × prezzo unitario.
+- Il subtotale della tabella è riportato come dettaglio delle lavorazioni; il riepilogo economico usa il campo imponibile del preventivo per evitare doppi conteggi.
 
-Nota: il subtotale della tabella è riportato nel PDF come dettaglio delle lavorazioni; il riepilogo economico usa il campo "Imponibile (€)" del preventivo, così non vengono sommati due volte gli stessi importi.
-
-## Formattazione
+## Formattazione editor
 
 L'editor supporta:
 
-- grassetto
-- sottolineato
-- elenco puntato
-- blu
-- rosso
-- rimozione formattazione
+- grassetto;
+- sottolineato;
+- elenco puntato;
+- blu;
+- rosso;
+- nero;
+- rimozione formattazione.
 
-La formattazione viene trasferita al PDF.
+Il contenuto dell'editor viene ripulito prima del rendering PDF: vengono rimossi script, iframe, embed, handler JavaScript e URL non sicuri.
 
-La firma viene acquisita con un canvas direttamente nel browser e inserita nel PDF come immagine.
+## Link presenti nei PDF
 
-## Importante
+Sono cliccabili, ove presenti:
 
-Le condizioni contrattuali incluse nel progetto sono quelle fornite nella configurazione precedente di Abilart. Prima di usare il documento come contratto definitivo, è consigliabile far verificare il testo da un professionista, soprattutto per clausole relative a caparra, responsabilità, garanzie, foro competente e normativa applicabile.
+- telefono Abilart;
+- WhatsApp Abilart;
+- email Abilart;
+- sito `impresaedileabilart.com`;
+- sito `idraulicoservizi.com`;
+- indirizzo Abilart verso Google Maps;
+- indirizzo del cliente verso Google Maps;
+- telefono ed email del cliente.
 
-## Dominio
+L'apertura del link Google Maps con l'indirizzo del cliente comporta naturalmente la trasmissione dell'indirizzo a Google secondo le condizioni del relativo servizio.
 
-Il progetto può essere successivamente collegato a un dominio personalizzato tramite GitHub Pages.
+## Privacy e sicurezza
 
+Il progetto è frontend-only: non salva preventivi in un database e non dispone di endpoint propri per inviare i dati.
 
-## PDF definitivo
+Le clausole privacy dei documenti richiamano il Regolamento (UE) 2016/679 (GDPR), il D.Lgs. 196/2003 e successive modifiche e indicano Abilart Srls come titolare del trattamento con il relativo contatto email.
 
-La generazione PDF usa un template A4 dedicato, separato dalla grafica del modulo. Il documento viene composto in pagine fisse A4 per mantenere allineamento, margini, tabelle, condizioni e firme.
+La clausola contrattuale non sostituisce, quando necessaria, una vera informativa privacy completa ai sensi degli artt. 13-14 GDPR. L'informativa aziendale completa dovrebbe essere mantenuta separatamente e aggiornata in base ai trattamenti effettivamente svolti.
 
-Il template riprende lo stile professionale Abilart: intestazione, numero documento/data, box cliente, sezioni azzurre, riepilogo economico con totale evidenziato, condizioni, firme e footer.
+## Condizioni contrattuali
 
-Il numero documento viene generato con data e ora fino ai secondi per evitare collisioni tra più preventivi creati nello stesso giorno.
+Le condizioni presenti nei due moduli sono state strutturate per il flusso del preventivo e includono riferimenti a caparra, responsabilità, vizi, foro competente, privacy e approvazione delle clausole.
 
-Il pulsante **Nero** è disponibile nell'editor del testo insieme a grassetto, sottolineato, elenco, blu, rosso e pulizia formattazione.
+Per l'utilizzo come contratto definitivo è consigliabile una verifica professionale del testo, in particolare per clausole di limitazione di responsabilità, caparra confirmatoria, foro competente, approvazione specifica ex artt. 1341-1342 c.c. e rapporti con consumatori.
 
-### Contatti e siti presenti nei PDF
-- Telefono: +39 320 429 5445
-- Email: abilart.impresaedile@gmail.com
-- Sito: https://impresaedileabilart.com/
-- Sito: https://idraulicoservizi.com/
+## Dati aziendali utilizzati
+
+- **Abilart Srls**
+- **P. IVA / C.F.: 10439280966**
+- **Via Caprera 2, 20851 Lissone (MB), Italia**
+- **Telefono: +39 320 429 5445**
+- **Email: abilart.impresaedile@gmail.com**
+- **Sito: https://impresaedileabilart.com/**
+- **Sito: https://idraulicoservizi.com/**

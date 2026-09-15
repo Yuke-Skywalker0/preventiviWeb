@@ -36,10 +36,21 @@ function escapeHtml(value) {
 
 function cleanEditorHtml(editor) {
   const clone = editor.cloneNode(true);
-  clone.querySelectorAll('script,style').forEach(n => n.remove());
+  clone.querySelectorAll('script,style,iframe,object,embed,form,meta,link').forEach(n => n.remove());
   clone.querySelectorAll('*').forEach(el => {
     [...el.attributes].forEach(a => {
-      if (a.name.toLowerCase().startsWith('on')) el.removeAttribute(a.name);
+      const name=a.name.toLowerCase();
+      const value=String(a.value||'').trim();
+      if(name.startsWith('on') || name==='contenteditable' || name==='srcdoc') {
+        el.removeAttribute(a.name);
+        return;
+      }
+      if(name==='href') {
+        if(!/^(https?:|mailto:|tel:)/i.test(value)) el.removeAttribute(a.name);
+      }
+      if(name==='src') {
+        if(!/^data:image\/(png|jpeg|jpg|gif|webp);/i.test(value) && !/^https?:/i.test(value)) el.removeAttribute(a.name);
+      }
     });
   });
   return clone.innerHTML.trim() || '<span style="color:#7d878e">Nessuna descrizione inserita.</span>';
@@ -191,9 +202,9 @@ function pdfPageHeader(title, number, date){
       <div class="pdf-company-name">ABILART SRLS</div>
       <div class="pdf-company-meta">
         <span>P. IVA / C.F. 10439280966</span>
-        <span>Via Caprera 2, 20851 Lissone (MB)</span>
+        <span><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Via Caprera 2, 20851 Lissone MB, Italia')}" data-pdf-link="company-address">Via Caprera 2, 20851 Lissone (MB)</a></span>
         <span>Zone operative: Monza, Milano, Bergamo e relative province</span>
-        <span><a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a> &nbsp;·&nbsp; <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a></span>
+        <span><a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a> &nbsp;·&nbsp; <a href="https://wa.me/393204295445" data-pdf-link="whatsapp">WhatsApp</a> &nbsp;·&nbsp; <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a></span>
       </div>
     </div>
     <div class="pdf-meta">
@@ -255,13 +266,14 @@ function pdfFooter(){
     <div class="pdf-footer-brand"><strong>ABILART SRLS</strong><span>P. IVA / C.F. 10439280966</span></div>
     <div class="pdf-footer-contact">
       <a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a>
+      <a href="https://wa.me/393204295445" data-pdf-link="whatsapp">WhatsApp</a>
       <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a>
     </div>
     <div class="pdf-footer-sites">
       <a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a>
       <a href="https://idraulicoservizi.com/" data-pdf-link="site2">idraulicoservizi.com</a>
     </div>
-    <div class="pdf-footer-address">Via Caprera 2 · Lissone (MB)</div>
+    <div class="pdf-footer-address"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Via Caprera 2, 20851 Lissone MB, Italia')}" data-pdf-link="company-address">Via Caprera 2 · Lissone (MB)</a></div>
   </div>`;
 }
 
@@ -357,8 +369,9 @@ function sleepFrame(){ return new Promise(resolve=>requestAnimationFrame(()=>req
 function stabilizeFlowBreaks(doc){
   const pageHeight=1123;
   const root=doc.getBoundingClientRect();
-  const topGap=34;
-  const bottomGap=42;
+  const topSafe=34;
+  const bottomSafe=38;
+  const continuationMin=96;
 
   const pagePosOf=el=>{
     const r=el.getBoundingClientRect();
@@ -367,41 +380,49 @@ function stabilizeFlowBreaks(doc){
     return {r,top,pagePos,remaining:pageHeight-pagePos};
   };
 
-  const pushBy=el=>{
+  const addMarginTop=el=>{
     const current=parseFloat(getComputedStyle(el).marginTop)||0;
     const info=pagePosOf(el);
-    const amount=Math.max(0, info.remaining+topGap);
-    el.style.marginTop=`${current+amount}px`;
+    const amount=Math.max(0, info.remaining + topSafe);
+    if(amount>0 && amount<pageHeight) el.style.marginTop=`${current+amount}px`;
   };
 
-  // Keep section title + following block together whenever the whole block fits.
+  const pushShortBlock=el=>{
+    const info=pagePosOf(el);
+    const h=info.r.height;
+    if(info.pagePos<=topSafe) return;
+    if(h>=pageHeight-(topSafe+bottomSafe)) return;
+    if(info.remaining < h+bottomSafe) addMarginTop(el);
+  };
+
+  // Section headings: never leave an orphan heading at the bottom.
+  // Long description/terms blocks are intentionally allowed to continue on
+  // the next page, so they are NOT moved as a whole just because they are tall.
   doc.querySelectorAll('.pdf-title').forEach(title=>{
     const next=title.nextElementSibling;
     if(!next) return;
-    const t=pagePosOf(title);
-    const n=next.getBoundingClientRect().height;
-    const required=t.r.height + 11 + Math.min(n, pageHeight-2*topGap);
-    if(t.pagePos>topGap && t.remaining < required + bottomGap) pushBy(title);
+    const titleInfo=pagePosOf(title);
+    const nextH=next.getBoundingClientRect().height;
+    const isLongFlow=next.classList.contains('pdf-description-flow') || next.classList.contains('pdf-terms-box');
+    const minimumNeeded=titleInfo.r.height + 12 + (isLongFlow ? continuationMin : Math.min(nextH, 180));
+    if(titleInfo.pagePos>topSafe && titleInfo.remaining < minimumNeeded + bottomSafe) addMarginTop(title);
   });
 
-  // Keep compact blocks off the very bottom of a page.
-  doc.querySelectorAll('.pdf-client-box, .pdf-flow-body > .pdf-box:not(.pdf-description-flow), .pdf-table-wrap, .pdf-economy, .pdf-payment, .pdf-acceptance, .pdf-signatures').forEach(box=>{
-    const info=pagePosOf(box);
-    const h=info.r.height;
-    if(info.pagePos>topGap && info.remaining < Math.min(h+bottomGap, pageHeight-topGap)) pushBy(box);
-  });
+  // Compact cards stay together when they fit; large flowing boxes do not get
+  // artificially pushed to a new page (that was the source of large white gaps).
+  doc.querySelectorAll('.pdf-client-box, .pdf-flow-body > .pdf-box:not(.pdf-description-flow), .pdf-economy, .pdf-payment, .pdf-acceptance, .pdf-signatures').forEach(pushShortBlock);
 
-  // Preserve paragraph/list/heading spacing. A complete paragraph/list moves as a unit.
-  doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-terms-box li').forEach(block=>{
-    const info=pagePosOf(block);
-    const h=info.r.height;
-    if(info.pagePos>topGap && h < pageHeight-2*topGap && info.remaining < h+bottomGap) pushBy(block);
-  });
-
-  // Never split a table row when it can be moved to the next page.
+  // Tables: keep rows intact where possible, but allow a long table to span pages.
   doc.querySelectorAll('.pdf-table tbody tr').forEach(row=>{
     const info=pagePosOf(row);
-    if(info.pagePos>topGap && info.remaining < info.r.height+bottomGap) pushBy(row);
+    if(info.pagePos>topSafe && info.remaining < info.r.height+bottomSafe && info.r.height < pageHeight-(topSafe+bottomSafe)) addMarginTop(row);
+  });
+
+  // Individual terms stay readable; the terms box itself remains one continuous
+  // one-column structure and can span pages naturally.
+  doc.querySelectorAll('.pdf-terms-box li').forEach(li=>{
+    const info=pagePosOf(li);
+    if(info.pagePos>topSafe && info.remaining < info.r.height+bottomSafe && info.r.height < pageHeight-(topSafe+bottomSafe)) addMarginTop(li);
   });
 }
 
@@ -411,18 +432,22 @@ function pinFooterToLastPage(doc){
   if(!footer || !body) return;
 
   const root=doc.getBoundingClientRect();
-  const footerRect=footer.getBoundingClientRect();
   const bodyRect=body.getBoundingClientRect();
+  const footerRect=footer.getBoundingClientRect();
   const pageHeight=1123;
-  const bottomSafe=28;
+  const bottomSafe=30;
+  const bodyStyle=getComputedStyle(body);
+  const paddingBottom=parseFloat(bodyStyle.paddingBottom)||0;
+  const contentBottom=Math.max(0, bodyRect.bottom-root.top-paddingBottom);
+  const lastContentPage=Math.max(0,Math.floor(Math.max(0,contentBottom-1)/pageHeight));
+  const pageBottom=(lastContentPage+1)*pageHeight;
+  const pageTargetTop=pageBottom-footerRect.height-bottomSafe;
+  const minFooterTop=contentBottom+16;
+  const targetTop=Math.max(pageTargetTop,minFooterTop);
   const currentTop=footerRect.top-root.top;
-  const bodyBottom=bodyRect.bottom-root.top;
-  const lastPage=Math.max(0,Math.floor(Math.max(0,bodyBottom-1)/pageHeight));
-  const targetTop=lastPage*pageHeight + pageHeight - footerRect.height - bottomSafe;
   const extra=Math.max(0,targetTop-currentTop);
   footer.style.marginTop=`${extra}px`;
 }
-
 
 function addPdfWatermark(pdf,pageIndex,total,title){
   // Watermark is already baked into the document BACKGROUND by html2canvas.
@@ -431,21 +456,39 @@ function addPdfWatermark(pdf,pageIndex,total,title){
   pdf.setTextColor(128,143,151);
   pdf.setFont('helvetica','normal');
   pdf.setFontSize(6.5);
-  pdf.text(`${title}  •  PAGINA ${pageIndex+1} / ${total}`,198,291,{align:'right'});
+  pdf.text(`${title}  •  PAGINA ${pageIndex+1} / ${total}`,198,273,{align:'right'});
   pdf.restoreGraphicsState();
 }
 
-async function addPdfLinksFromDom(pdf, root, canvasScale){
-  const rootRect=root.getBoundingClientRect();
-  const mmX=210/794, mmY=297/1123;
-  root.querySelectorAll('[data-pdf-link]').forEach(el=>{
+function addContinuationPageBreathing(doc){
+  const pageHeight=1123;
+  const root=doc.getBoundingClientRect();
+  const pageGap=16;
+  const candidates=[
+    ...doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-terms-box li, .pdf-table tbody tr')
+  ];
+  candidates.forEach(el=>{
     const r=el.getBoundingClientRect();
-    const x=(r.left-rootRect.left)*mmX;
-    const y=(r.top-rootRect.top)*mmY;
-    const w=Math.max(2,r.width*mmX);
-    const h=Math.max(3,r.height*mmY);
-    const url=el.href;
-    if(url) pdf.link(x,y,w,h,{url});
+    const top=r.top-root.top;
+    const bottom=r.bottom-root.top;
+    const startPage=Math.floor(Math.max(0,top)/pageHeight);
+    const endPage=Math.floor(Math.max(0,bottom-0.5)/pageHeight);
+    if(endPage<=startPage) return;
+    // The element already crosses a page. Do not move or shrink it: the normal
+    // flow remains authoritative. This helper only marks the continuation so
+    // the renderer can keep the next fragment visually calm.
+    el.dataset.pdfContinuation='true';
+  });
+  // A tiny, non-invasive top padding is applied only to blocks that begin very
+  // close to an A4 boundary. It avoids text appearing glued to the page edge.
+  candidates.forEach(el=>{
+    const r=el.getBoundingClientRect();
+    const top=r.top-root.top;
+    const pagePos=((top%pageHeight)+pageHeight)%pageHeight;
+    if(pagePos>0 && pagePos<pageGap){
+      const current=parseFloat(getComputedStyle(el).marginTop)||0;
+      el.style.marginTop=`${current+(pageGap-pagePos)}px`;
+    }
   });
 }
 
@@ -474,6 +517,10 @@ async function downloadPDF(html, filename){
     await document.fonts?.ready;
     await sleepFrame();
     stabilizeFlowBreaks(doc);
+    await sleepFrame();
+    pinFooterToLastPage(doc);
+    await sleepFrame();
+    addContinuationPageBreathing(doc);
     await sleepFrame();
     pinFooterToLastPage(doc);
     await sleepFrame();
@@ -520,6 +567,8 @@ async function downloadPDF(html, filename){
       crop.width=Math.round(cssWidth*renderScale);
       crop.height=Math.round(cssPageHeight*renderScale);
       const ctx=crop.getContext('2d');
+      ctx.imageSmoothingEnabled=true;
+      ctx.imageSmoothingQuality='high';
       ctx.fillStyle='#ffffff';
       ctx.fillRect(0,0,crop.width,crop.height);
       ctx.drawImage(
@@ -531,7 +580,7 @@ async function downloadPDF(html, filename){
       );
 
       if(page>0) pdf.addPage('a4','portrait');
-      pdf.addImage(crop.toDataURL('image/jpeg',0.96),'JPEG',0,0,210,297,undefined,'FAST');
+      pdf.addImage(crop.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');
       addPdfWatermark(pdf,page,totalPages,title);
     }
 

@@ -429,108 +429,232 @@ function groupPageBody(body){
   return groups;
 }
 
-function splitDescriptionSection(section, available){
+function makeMeasurePage(title, number, date, bodyHtml=''){
+  const probe=document.createElement('section');
+  probe.className='pdf-page';
+  probe.style.position='absolute';
+  probe.style.left='-100000px';
+  probe.style.top='0';
+  probe.style.width='794px';
+  probe.style.height='1123px';
+  probe.innerHTML=`${pdfPageHeader(title,number,date,'PAGINA X / X')}<div class="pdf-page-body">${bodyHtml}</div>${pdfFooter()}`;
+  document.body.appendChild(probe);
+  return probe;
+}
+
+function groupFits(group, currentGroups, meta){
+  const bodyHtml=[...currentGroups, group].map(g=>g.outerHTML).join('');
+  const probe=makeMeasurePage(meta.title,meta.number,meta.date,bodyHtml);
+  const body=probe.querySelector('.pdf-page-body');
+  const fits=body.scrollHeight <= body.clientHeight + 1;
+  probe.remove();
+  return fits;
+}
+
+function measureSingleGroup(group, meta){
+  const probe=makeMeasurePage(meta.title,meta.number,meta.date,group.outerHTML);
+  const body=probe.querySelector('.pdf-page-body');
+  const result={fits:body.scrollHeight<=body.clientHeight+1,height:body.scrollHeight,available:body.clientHeight};
+  probe.remove();
+  return result;
+}
+
+function splitDescriptionSection(section, meta){
   const desc=section.querySelector('.pdf-description');
   if(!desc) return null;
   const title=section.querySelector('.pdf-title')?.cloneNode(true);
-  const content=desc.cloneNode(false);
-  content.innerHTML='';
-  const source=[...desc.childNodes];
+  const source=[...desc.children];
   if(!source.length) return null;
 
   const chunks=[];
-  let chunk=content.cloneNode(false);
+  let chunkNodes=[];
+  const buildPart=(nodes, continuation=false)=>{
+    const sec=document.createElement('div'); sec.className='pdf-flow-section';
+    if(title){
+      const t=title.cloneNode(true);
+      if(continuation) t.textContent="OGGETTO DELLA PRESTAZIONE D'OPERA — SEGUE";
+      sec.appendChild(t);
+    }
+    const box=desc.cloneNode(false);
+    nodes.forEach(n=>box.appendChild(n.cloneNode(true)));
+    sec.appendChild(box);
+    return sec;
+  };
+
   for(const node of source){
-    const candidate=node.cloneNode(true);
-    chunk.appendChild(candidate);
-    const probe=document.createElement('div');
-    probe.className='pdf-flow-section';
-    if(title) probe.appendChild(title.cloneNode(true));
-    const box=desc.cloneNode(false); box.innerHTML=chunk.innerHTML; probe.appendChild(box);
-    probe.style.position='absolute'; probe.style.visibility='hidden'; probe.style.width='100%';
-    document.body.appendChild(probe);
-    const h=probe.scrollHeight;
-    probe.remove();
-    if(h>available && chunk.childNodes.length>1){
-      chunk.removeChild(candidate);
-      chunks.push(chunk);
-      chunk=content.cloneNode(false);
-      chunk.appendChild(candidate);
+    const candidate=buildPart([...chunkNodes,node],chunks.length>0);
+    const m=measureSingleGroup(candidate,meta);
+    if(!m.fits && chunkNodes.length){
+      chunks.push(buildPart(chunkNodes,chunks.length>0));
+      chunkNodes=[node];
+      // If one paragraph/list is itself too large, split its text into word chunks.
+      const single=buildPart(chunkNodes,true);
+      if(!measureSingleGroup(single,meta).fits){
+        const text=node.textContent||'';
+        if(text.trim()){
+          const words=text.split(/\s+/).filter(Boolean);
+          let part=[];
+          for(const word of words){
+            const probeNode=document.createElement(node.tagName||'p');
+            probeNode.className=node.className||'';
+            probeNode.textContent=[...part,word].join(' ');
+            const test=buildPart(part.concat([probeNode]),true);
+            if(!measureSingleGroup(test,meta).fits && part.length){
+              const finalNode=document.createElement(node.tagName||'p');
+              finalNode.className=node.className||'';
+              finalNode.textContent=part.join(' ');
+              chunks.push(buildPart([finalNode],true));
+              part=[word];
+            }else part.push(word);
+          }
+          if(part.length){
+            const finalNode=document.createElement(node.tagName||'p');
+            finalNode.className=node.className||'';
+            finalNode.textContent=part.join(' ');
+            chunkNodes=[finalNode];
+          }else chunkNodes=[];
+        }
+      }
+    }else{
+      chunkNodes.push(node);
     }
   }
-  if(chunk.childNodes.length) chunks.push(chunk);
-  if(chunks.length<=1) return null;
-  return chunks.map((c,idx)=>{
+  if(chunkNodes.length) chunks.push(buildPart(chunkNodes,chunks.length>0));
+  return chunks.length>1 ? chunks : null;
+}
+
+function splitTermsBox(section, meta){
+  const box=section.querySelector('.pdf-terms-box');
+  if(!box) return null;
+  const ol=box.querySelector('ol');
+  const lis=ol?[...ol.children]:[];
+  if(!lis.length) return null;
+  const title=section.querySelector('.pdf-title')?.cloneNode(true);
+  const parts=[]; let current=[];
+  const makePart=(items, continuation)=>{
     const sec=document.createElement('div'); sec.className='pdf-flow-section';
-    if(title) sec.appendChild(title.cloneNode(true));
-    const box=desc.cloneNode(false); box.innerHTML=c.innerHTML;
-    if(idx>0){
-      const t=sec.querySelector('.pdf-title');
-      if(t) t.textContent='OGGETTO DELLA PRESTAZIONE D\'OPERA — SEGUE';
-    }
-    sec.appendChild(box); return sec;
-  });
+    if(title){const t=title.cloneNode(true); if(continuation)t.textContent='CONDIZIONI GENERALI DI FORNITURA — SEGUE'; sec.appendChild(t);}
+    const b=box.cloneNode(false); const o=ol.cloneNode(false);
+    if(items[0]) o.setAttribute('start',items[0].dataset.pdfIndex||'1');
+    items.forEach(li=>o.appendChild(li.cloneNode(true))); b.appendChild(o); sec.appendChild(b); return sec;
+  };
+  lis.forEach((li,i)=>{li.dataset.pdfIndex=String(i+1); const cand=makePart([...current,li],parts.length>0); if(!measureSingleGroup(cand,meta).fits&&current.length){parts.push(makePart(current,parts.length>0)); current=[li];} else current.push(li);});
+  if(current.length)parts.push(makePart(current,parts.length>0));
+  return parts.length>1?parts:null;
+}
+
+function splitTermsGrid(section, meta){
+  const cols=[...section.querySelectorAll('.pdf-terms-column')];
+  if(!cols.length) return null;
+  const title=section.querySelector('.pdf-title')?.cloneNode(true);
+  const items=[];
+  cols.forEach(col=>[...col.querySelectorAll('li')].forEach(li=>items.push(li.cloneNode(true))));
+  if(!items.length) return null;
+  const parts=[]; let current=[];
+  const makePart=(arr,continuation)=>{
+    const sec=document.createElement('div'); sec.className='pdf-flow-section';
+    if(title){const t=title.cloneNode(true); if(continuation)t.textContent='CONDIZIONI GENERALI DI CONTRATTO — SEGUE'; sec.appendChild(t);}
+    const grid=document.createElement('div'); grid.className='pdf-terms-grid';
+    const left=document.createElement('div'); left.className='pdf-terms-column';
+    const right=document.createElement('div'); right.className='pdf-terms-column';
+    const ol1=document.createElement('ol'), ol2=document.createElement('ol');
+    arr.forEach((li,idx)=>{ const target=idx<Math.ceil(arr.length/2)?ol1:ol2; target.appendChild(li.cloneNode(true)); });
+    left.appendChild(ol1); right.appendChild(ol2); grid.append(left,right); sec.appendChild(grid); return sec;
+  };
+  items.forEach(li=>{const cand=makePart([...current,li],parts.length>0); if(!measureSingleGroup(cand,meta).fits&&current.length){parts.push(makePart(current,parts.length>0)); current=[li];}else current.push(li);});
+  if(current.length)parts.push(makePart(current,parts.length>0));
+  return parts.length>1?parts:null;
+}
+
+function splitTableSection(section, meta){
+  const table=section.querySelector('.pdf-table');
+  if(!table) return null;
+  const rows=[...table.querySelectorAll('tbody tr')];
+  if(!rows.length) return null;
+  const title=section.querySelector('.pdf-title')?.cloneNode(true);
+  const parts=[]; let current=[];
+  const makePart=(arr,continuation)=>{
+    const sec=document.createElement('div'); sec.className='pdf-flow-section';
+    if(title){const t=title.cloneNode(true); if(continuation)t.textContent='DETTAGLIO VOCI DI PREVENTIVO — SEGUE'; sec.appendChild(t);}
+    const t=table.cloneNode(false); t.innerHTML='';
+    const thead=table.querySelector('thead'); if(thead)t.appendChild(thead.cloneNode(true));
+    const tbody=document.createElement('tbody'); arr.forEach(r=>tbody.appendChild(r.cloneNode(true))); t.appendChild(tbody); sec.appendChild(t); return sec;
+  };
+  rows.forEach(row=>{const cand=makePart([...current,row],parts.length>0); if(!measureSingleGroup(cand,meta).fits&&current.length){parts.push(makePart(current,parts.length>0)); current=[row];}else current.push(row);});
+  if(current.length)parts.push(makePart(current,parts.length>0));
+  return parts.length>1?parts:null;
+}
+
+function splitOversizedGroup(group, meta){
+  if(group.querySelector('.pdf-description')) return splitDescriptionSection(group,meta);
+  if(group.querySelector('.pdf-terms-box')) return splitTermsBox(group,meta);
+  if(group.querySelector('.pdf-terms-grid')) return splitTermsGrid(group,meta);
+  if(group.querySelector('.pdf-table')) return splitTableSection(group,meta);
+  return null;
+}
+
+function emergencyFitGroup(group, meta){
+  // Last-resort protection for an unusual custom block: never cut it or place it
+  // underneath the footer. Reduce only the block typography until it fits its own page.
+  for(let scale=0.96; scale>=0.58; scale-=0.02){
+    const clone=group.cloneNode(true);
+    clone.style.fontSize=`${scale}em`;
+    clone.querySelectorAll('*').forEach(el=>{
+      const fs=getComputedStyle(el).fontSize;
+      if(fs && !Number.isNaN(parseFloat(fs))) el.style.fontSize=`${parseFloat(fs)*scale}px`;
+    });
+    if(measureSingleGroup(clone,meta).fits) return clone;
+  }
+  return null;
 }
 
 function paginatePdfPages(holder){
   const original=[...holder.querySelectorAll('.pdf-page')];
   if(!original.length) return;
-  const generated=[];
   const sourceDocuments=[];
-
   original.forEach(page=>{
     const body=page.querySelector('.pdf-page-body');
-    const header=page.querySelector('.pdf-page-header');
     const type=page.querySelector('.pdf-doc-type');
     const metaNumber=page.querySelector('.pdf-meta strong')?.textContent||'';
     const metaDate=(page.querySelector('.pdf-meta span:nth-of-type(2)')?.textContent||'').replace(/^DATA:\s*/,'');
     const title=type?.textContent||'PREVENTIVO / CONTRATTO';
-    const groups=groupPageBody(body);
-    sourceDocuments.push({groups,title,number:metaNumber,date:metaDate});
+    sourceDocuments.push({groups:groupPageBody(body),title,number:metaNumber,date:metaDate});
   });
 
-  // Preserve intentional document sections: each original fixed page becomes a flow group.
-  sourceDocuments.forEach(doc=>{
+  const generated=[];
+  for(const doc of sourceDocuments){
     let current=[];
-    const flush=()=>{
-      if(!current.length) return;
-      generated.push({title:doc.title,number:doc.number,date:doc.date,groups:current});
-      current=[];
-    };
+    const meta={title:doc.title,number:doc.number,date:doc.date};
+    const flush=()=>{if(current.length){generated.push({...meta,groups:current});current=[];}};
     for(const group of doc.groups){
-      const test=document.createElement('div');
-      test.className='pdf-page';
-      test.style.position='absolute'; test.style.left='-99999px'; test.style.top='0';
-      test.style.width='794px'; test.style.height='1123px';
-      test.innerHTML=`${pdfPageHeader(doc.title,doc.number,doc.date,'PAGINA X / X')}<div class="pdf-page-body"></div>${pdfFooter()}`;
-      const b=test.querySelector('.pdf-page-body');
-      current.forEach(g=>b.appendChild(g.cloneNode(true)));
-      b.appendChild(group.cloneNode(true));
-      document.body.appendChild(test);
-      const fits=b.scrollHeight<=b.clientHeight+1;
-      test.remove();
-      if(fits){
-        current.push(group);
+      if(groupFits(group,current,meta)){
+        current.push(group); continue;
+      }
+      flush();
+      if(groupFits(group,[],meta)){
+        current=[group]; continue;
+      }
+      const parts=splitOversizedGroup(group,meta);
+      if(parts && parts.length){
+        parts.forEach(part=>{
+          if(groupFits(part,[],meta)) generated.push({...meta,groups:[part]});
+          else {
+            const safe=emergencyFitGroup(part,meta);
+            if(safe) generated.push({...meta,groups:[safe]});
+            else throw new Error('Impossibile impaginare la sezione senza tagli.');
+          }
+        });
       }else{
-        if(current.length) flush();
-        // A single oversized description is split into measured chunks. Other oversized blocks
-        // are placed alone and allowed to create their own continuation page.
-        const probe=document.createElement('div');
-        probe.className='pdf-page'; probe.style.position='absolute'; probe.style.left='-99999px'; probe.style.top='0'; probe.style.width='794px'; probe.style.height='1123px';
-        probe.innerHTML=`${pdfPageHeader(doc.title,doc.number,doc.date,'PAGINA X / X')}<div class="pdf-page-body"></div>${pdfFooter()}`;
-        document.body.appendChild(probe);
-        const parts=splitDescriptionSection(group,probe.querySelector('.pdf-page-body').clientHeight);
-        probe.remove();
-        if(parts){ parts.forEach(part=>generated.push({title:doc.title,number:doc.number,date:doc.date,groups:[part]})); }
-        else current=[group];
+        const safe=emergencyFitGroup(group,meta);
+        if(safe) generated.push({...meta,groups:[safe]});
+        else throw new Error('Impossibile impaginare la sezione senza tagli.');
       }
     }
     flush();
-  });
+  }
 
   const total=generated.length;
-  const documentRoot=document.createElement('div');
-  documentRoot.className='pdf-document';
+  const documentRoot=document.createElement('div'); documentRoot.className='pdf-document';
   generated.forEach((pageData,idx)=>{
     const bodyHtml=pageData.groups.map(g=>g.outerHTML).join('');
     documentRoot.insertAdjacentHTML('beforeend',makePdfPage(pageData.title,pageData.number,pageData.date,`PAGINA ${idx+1} / ${total}`,bodyHtml));
@@ -582,7 +706,9 @@ async function downloadPDF(html, filename){
     pdf.save(filename);
   }catch(err){
     console.error('Errore generazione PDF:',err);
-    alert('Il contenuto è troppo lungo per essere impaginato correttamente. Il PDF non è stato generato per evitare tagli o sovrapposizioni.');
+    // Non mostrare alert bloccanti all'utente: la paginazione deve adattarsi alle lunghezze variabili.
+    const status=document.querySelector('.pdf-status');
+    if(status){ status.textContent="Impossibile completare l'impaginazione automatica."; status.classList.add('error'); }
   }finally{
     document.body.classList.remove('pdf-rendering'); holder.remove();
   }

@@ -76,7 +76,7 @@ test('client card heights follow wrapped values instead of fixed row sizing', ()
 test('description panel and economic recap use measured content heights', () => {
   assert.doesNotMatch(renderer, /Math\.min\(estimated\+12,90\)/);
   assert.match(renderer, /const actual=yy-start\+2;return actual/);
-  assert.match(renderer, /content-driven frame/);
+  assert.match(renderer, /flowFrame=\{x,w,fill:'soft',stroke:'line'/);
 });
 
 test('work table splits oversized rows and repeats its heading on continued pages', () => {
@@ -96,9 +96,15 @@ test('PDF exposes clickable company, client, email, phone and map links', () => 
   assert.match(renderer, /f\.anchors\?\.length/);
 });
 
-test('PDF visual hierarchy labels continuation and improves contract legibility', () => {
-  assert.match(renderer, /CONTINUA · PAG\./);
-  assert.match(renderer, /ctx\.y,176,8\.0/);
+test('PDF visual hierarchy uses clean headers, continuous frames and a safe footer', () => {
+  assert.doesNotMatch(renderer, /CONTINUA · PAG\.|DOCUMENTO IN CONTINUAZIONE|Condizioni generali · continua/);
+  assert.match(renderer, /drawRichLine\(lead,18,ctx\.y,172,8\.0\)/);
+  assert.match(renderer, /flowFrame/);
+  assert.match(renderer, /from=Math\.max\(f\.lastY\?\?top,top\)/);
+  assert.match(renderer, /bottom:269,width:182/);
+  assert.match(renderer, /p\.line\(14,276,196,276\)/);
+  assert.match(renderer, /p\.text\('Pagina '\+i\+' \/ '\+n,196,283/);
+  assert.match(renderer, /pale:\[247,250,252\]/);
   assert.match(renderer, /p\.setFontSize\(8\.4\)/);
 });
 

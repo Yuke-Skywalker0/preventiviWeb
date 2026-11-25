@@ -19,12 +19,15 @@ test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.doesNotMatch(pdfFn, /height:fullHeight/);
 });
 
-test('short text blocks are moved away from page cut lines', () => {
-  assert.match(paginationFn, /pdf-description-content > p/);
-  assert.match(paginationFn, /startPage===endPage/);
-  assert.match(paginationFn, /pageHeight-pagePos<height\+safeBottom/);
-  assert.match(paginationFn, /el\.style\.marginTop/);
-  assert.match(source, /\.pdf-terms-box li/);
+test('page cuts follow nearby text line endings without moving whole blocks', () => {
+  assert.match(source, /function getPdfPageCuts\(doc,pageHeight,fullHeight\)/);
+  assert.match(source, /range\.getClientRects\(\)/);
+  assert.match(source, /snapTolerance=18/);
+  assert.match(source, /pageCuts=getPdfPageCuts\(doc,cssPageHeight,fullHeight\)/);
+  assert.match(source, /pageTop=pageCuts\[page\]/);
+  assert.doesNotMatch(source, /el\.style\.marginTop/);
+  assert.doesNotMatch(source, /stabilizeFlowBreaks\(doc\)/);
+  assert.match(source, /for\(let page=0;page<totalPages;page\+\+\)/);
 });
 
 test('temporary canvases are released between pages and on errors', () => {

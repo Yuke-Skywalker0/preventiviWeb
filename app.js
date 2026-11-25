@@ -522,8 +522,6 @@ async function downloadPDF(html, filename, outputWindow=null){
 
     await document.fonts?.ready;
     await sleepFrame();
-    stabilizeFlowBreaks(doc);
-    await sleepFrame();
     pinFooterToLastPage(doc);
     await sleepFrame();
     pinFooterToLastPage(doc);
@@ -572,9 +570,7 @@ async function downloadPDF(html, filename, outputWindow=null){
     doc.querySelectorAll('[data-pdf-link]').forEach(el=>{
       const r=el.getBoundingClientRect();
       const top=r.top-docRect.top, bottom=r.bottom-docRect.top;
-      const first=Math.floor(Math.max(0,top)/cssPageHeight);
-      const last=Math.floor(Math.max(0,bottom-0.5)/cssPageHeight);
-      for(let page=first;page<=last&&page<totalPages;page++){
+      for(let page=0;page<totalPages;page++){
         const pageTop=pageCuts[page];
         const pageBottom=pageCuts[page+1];
         const visibleTop=Math.max(top,pageTop);

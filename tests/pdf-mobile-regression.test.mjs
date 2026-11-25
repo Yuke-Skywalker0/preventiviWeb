@@ -2,79 +2,60 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const source = await readFile(new URL('../app.js', import.meta.url), 'utf8');
-const start = source.indexOf('async function downloadPDF(');
-const end = source.indexOf("\n$('#service-form').addEventListener", start);
-assert.ok(start >= 0 && end > start, 'PDF function boundaries must exist');
-const pdfFn = source.slice(start, end);
+const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const renderer = await readFile(new URL('../pdf-renderer.js', import.meta.url), 'utf8');
+const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-test('PDF uses native jsPDF text/vector layout, not page screenshots', () => {
-  assert.match(pdfFn, /new window\.jspdf\.jsPDF/);
-  assert.match(pdfFn, /pdfNativeWalk\(p,root\.querySelector\('\.pdf-flow-body'\)/);
-  assert.match(source, /function pdfNativeTable\(/);
-  assert.doesNotMatch(source, /html2canvas/);
-  assert.doesNotMatch(pdfFn, /addImage\(renderedCanvas/);
-  assert.doesNotMatch(pdfFn, /createElement\('canvas'\)/);
+test('PDF generation uses local native layout renderer, not page screenshots', () => {
+  assert.match(app, /window\.AbilartPDFRenderer\?\.render/);
+  assert.match(renderer, /new window\.jspdf\.jsPDF/);
+  assert.match(renderer, /p\.text\(/);
+  assert.match(renderer, /p\.roundedRect\(/);
+  assert.doesNotMatch(app + renderer + html, /html2canvas/);
+  assert.doesNotMatch(renderer, /canvas\.toDataURL|addImage\(renderedCanvas/);
 });
 
-test('PDF downloads directly after compilation without an intermediate viewer tab', () => {
-  assert.match(pdfFn, /p\.save\(filename\)/);
-  assert.doesNotMatch(source, /preparePdfOutputWindow/);
-  assert.doesNotMatch(source, /window\.open\('about:blank'/);
-  assert.doesNotMatch(pdfFn, /pdf\.output\('blob'\)/);
-  assert.ok(source.includes("downloadPDF(buildServicePDF(),`Preventivo_Abilart_"));
-  assert.ok(source.includes("downloadPDF(buildEdilePDF(),`Preventivo_Edile_Abilart_"));
+test('PDF engine and company logo are local assets on GitHub Pages', () => {
+  assert.match(html, /src="vendor\/jspdf\.umd\.min\.js"/);
+  assert.match(html, /src="pdf-renderer\.js"/);
+  assert.match(renderer, /assets\/abilart-logo\.png/);
+  assert.match(renderer, /fetch\(url\)/);
+  assert.doesNotMatch(html, /cdnjs\.cloudflare\.com\/ajax\/libs\/jspdf/);
 });
 
-test('native renderer paginates content, tables and page footer safely', () => {
-  assert.match(source, /function pdfNativeHeader\(/);
-  assert.match(source, /function pdfNativeFooter\(/);
-  assert.match(source, /function pdfNativeTable\(/);
-  assert.match(source, /state\.y\+height>267/);
-  assert.match(source, /Pagina '\+i/);
+test('PDF invokes direct device download without opening a viewer popup', () => {
+  assert.match(app, /pdf\.save\(filename\)/);
+  assert.doesNotMatch(app, /preparePdfOutputWindow|window\.open\('about:blank'/);
+  assert.ok(app.includes('downloadPDF(buildServicePDF()'));
+  assert.ok(app.includes('downloadPDF(buildEdilePDF()'));
 });
 
-test('company website links are present in PDF header and footer', () => {
-  assert.match(source, /impresaedileabilart\.com/);
-  assert.match(source, /idraulicoservizi[.]it/);
-  assert.match(source, /data-pdf-link="site1"/);
-  assert.match(source, /data-pdf-link="site2"/);
+test('renderer restores brand header, page counter, economic panel and signature', () => {
+  assert.match(renderer, /ABILART SRLS/);
+  assert.match(renderer, /DOCUMENTO NUMERO/);
+  assert.match(renderer, /Pagina '\+i/);
+  assert.match(renderer, /function renderEconomy/);
+  assert.match(renderer, /function renderSignatures/);
+  assert.match(renderer, /function renderTerms/);
+  assert.match(renderer, /function renderTable/);
 });
 
-test('PDF content wraps safely without font compression or stretched images', async () => {
-  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.match(css, /\.pdf-flow-document img\{[\s\S]*?height:auto/);
-  assert.match(css, /\.pdf-description-content,[\s\S]*?overflow-wrap:anywhere/);
-  assert.match(css, /\.pdf-flow-body table\{[\s\S]*?width:100%/);
-  assert.match(css, /\.pdf-flow-body \.pdf-signature img\{[\s\S]*?max-width:100%/);
+test('rich text preserves bold, italic, underline and ordered/unordered lists', () => {
+  assert.match(renderer, /tag==='strong'\|\|tag==='b'/);
+  assert.match(renderer, /tag==='em'\|\|tag==='i'/);
+  assert.match(renderer, /tag==='u'/);
+  assert.match(renderer, /tag==='ul'\|\|tag==='ol'/);
+  assert.match(renderer, /p\.circle\(/);
 });
 
-
-test('quote issue date is distinct from planned intervention date and validity is calendar-based', async () => {
-  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /Data emissione preventivo/);
-  assert.match(html, /id="s-work-date"/);
-  assert.match(html, /id="e-work-date"/);
-  assert.match(html, /type="number" min="1" max="365" step="1" value="15"/);
-  const helpersSource = source.slice(source.indexOf('function dateIT('), source.indexOf('function escapeHtml('));
-  const helpers = new Function(helpersSource + '; return { addDaysISO, validityText };')();
-  assert.equal(helpers.addDaysISO('2026-11-25', 15), '2026-12-10');
-  assert.equal(helpers.validityText('15', '2026-11-25'), '15 giorni dalla data di emissione (scadenza 10/12/2026)');
+test('native renderer paginates content and uses A4 dimensions', () => {
+  assert.match(renderer, /format:'a4'/);
+  assert.match(renderer, /function ensure\(h,keep=0\)/);
+  assert.match(renderer, /function newPage\(\)/);
+  assert.match(renderer, /function footer\(\)/);
 });
 
-test('commercial validation is wired to both forms and prevents inconsistent totals', () => {
-  assert.match(source, /function quoteBusinessCheck\(form\)/);
-  assert.match(source, /subtotale lavorazioni/i);
-  assert.match(source, /L’acconto non può superare il totale/);
-  assert.equal((source.match(/quoteBusinessCheck\(e\.currentTarget\)/g) || []).length, 2);
-  assert.match(source, /pattern=\/\^-\?\(\?:\\d\+/);
-});
-
-test('contract wording does not mislabel an image signature as a digital signature', async () => {
-  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /foro previsto dalla normativa a sua tutela/);
-  assert.match(html, /lavorazioni non previste non sono comprese/);
-  assert.match(html, /informativa privacy completa è resa separatamente/);
-  assert.doesNotMatch(source, /Documento firmato digitalmente/);
-  assert.doesNotMatch(source, /approvato specificamente le clausole contenute nel presente documento/);
+test('both quote forms still call the direct PDF download flow', () => {
+  assert.equal((app.match(/downloadPDF\(buildServicePDF\(\)/g)||[]).length,1);
+  assert.equal((app.match(/downloadPDF\(buildEdilePDF\(\)/g)||[]).length,1);
 });

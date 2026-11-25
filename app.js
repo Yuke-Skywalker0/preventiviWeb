@@ -492,8 +492,19 @@ function addContinuationPageBreathing(doc){
   });
 }
 
-async function downloadPDF(html, filename){
+function preparePdfOutputWindow(){
+  // iOS Safari does not reliably download files after a long asynchronous render.
+  // Open a window synchronously from the submit gesture, then navigate it to the
+  // finished PDF Blob. Other browsers keep the normal download flow.
+  const ua=navigator.userAgent||'';
+  const isIOS=/iPad|iPhone|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(!isIOS) return null;
+  try{return window.open('about:blank','_blank');}catch(_){return null;}
+}
+
+async function downloadPDF(html, filename, outputWindow=null){
   if(typeof html2canvas==='undefined' || typeof window.jspdf==='undefined' || typeof window.jspdf.jsPDF==='undefined'){
+    outputWindow?.close();
     alert('Il motore PDF non è stato caricato. Controlla la connessione Internet e ricarica la pagina.');
     return;
   }
@@ -504,6 +515,7 @@ async function downloadPDF(html, filename){
   document.body.appendChild(holder);
   document.body.classList.add('pdf-rendering');
 
+  let renderedCanvas=null;
   try{
     const doc=holder.querySelector('.pdf-flow-document');
     const {jsPDF}=window.jspdf;
@@ -525,66 +537,43 @@ async function downloadPDF(html, filename){
     pinFooterToLastPage(doc);
     await sleepFrame();
 
-    /*
-      IMPORTANTISSIMO:
-      non renderizziamo una pagina alla volta con html2canvas.
-      html2canvas puo' infatti ricomputare il viewport/crop e duplicare
-      porzioni del documento. Renderizziamo UNA SOLA VOLTA il flusso
-      completo e poi ritagliamo il canvas in pagine A4.
-    */
+    // Render one A4-sized crop at a time. A single canvas for the complete
+    // document exceeded Safari/iOS canvas and memory limits on long contracts.
+    // Keeping the same fixed document width and CSS page coordinates preserves
+    // the existing pagination while bounding each allocation to one page.
     const cssWidth=794;
     const cssPageHeight=1123;
     const fullHeight=Math.ceil(doc.scrollHeight);
-    const renderScale=1.5;
     const totalPages=Math.max(1,Math.ceil(fullHeight/cssPageHeight));
-
-    const fullCanvas=await html2canvas(doc,{
-      width:cssWidth,
-      height:fullHeight,
-      windowWidth:cssWidth,
-      windowHeight:Math.min(fullHeight,3000),
-      x:0,
-      y:0,
-      scale:renderScale,
-      useCORS:true,
-      allowTaint:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      scrollX:0,
-      scrollY:0,
-      imageTimeout:15000
-    });
-
+    const renderScale=1.5;
     const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true,putOnlyUsedFonts:true});
     const title=doc.querySelector('.pdf-doc-type')?.textContent?.trim()||'DOCUMENTO';
 
-    for(let page=0; page<totalPages; page++){
-      const sourceY=page*cssPageHeight*renderScale;
-      const remaining=Math.min(cssPageHeight, fullHeight-page*cssPageHeight);
-      if(remaining<=0) continue;
+    for(let page=0;page<totalPages;page++){
+      const pageTop=page*cssPageHeight;
+      const pageHeight=Math.min(cssPageHeight,fullHeight-pageTop);
+      if(pageHeight<=0) continue;
 
-      const crop=document.createElement('canvas');
-      crop.width=Math.round(cssWidth*renderScale);
-      crop.height=Math.round(cssPageHeight*renderScale);
-      const ctx=crop.getContext('2d');
-      ctx.imageSmoothingEnabled=true;
-      ctx.imageSmoothingQuality='high';
-      ctx.fillStyle='#ffffff';
-      ctx.fillRect(0,0,crop.width,crop.height);
-      ctx.drawImage(
-        fullCanvas,
-        0, sourceY,
-        fullCanvas.width, Math.round(remaining*renderScale),
-        0, 0,
-        crop.width, Math.round(remaining*renderScale)
-      );
+      renderedCanvas=await html2canvas(doc,{
+        x:0,y:pageTop,width:cssWidth,height:pageHeight,
+        windowWidth:cssWidth,windowHeight:cssPageHeight,
+        scale:renderScale,useCORS:true,allowTaint:false,
+        backgroundColor:'#ffffff',logging:false,
+        scrollX:0,scrollY:0,imageTimeout:15000
+      });
+      if(!renderedCanvas.width||!renderedCanvas.height) throw new Error(`Canvas PDF vuoto alla pagina ${page+1}`);
 
       if(page>0) pdf.addPage('a4','portrait');
-      pdf.addImage(crop.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');
+      pdf.addImage(renderedCanvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,210,297,undefined,'FAST');
       addPdfWatermark(pdf,page,totalPages,title);
+
+      // Release the large backing store before allocating the next page.
+      renderedCanvas.width=0;
+      renderedCanvas.height=0;
+      renderedCanvas=null;
     }
 
-    // Link cliccabili: vengono ricostruiti sopra l'immagine, pagina per pagina.
+    // Rebuild clickable links over the rasterized pages.
     const docRect=doc.getBoundingClientRect();
     const mmX=210/cssWidth, mmY=297/cssPageHeight;
     doc.querySelectorAll('[data-pdf-link]').forEach(el=>{
@@ -592,7 +581,7 @@ async function downloadPDF(html, filename){
       const top=r.top-docRect.top, bottom=r.bottom-docRect.top;
       const first=Math.floor(Math.max(0,top)/cssPageHeight);
       const last=Math.floor(Math.max(0,bottom-0.5)/cssPageHeight);
-      for(let page=first;page<=last && page<totalPages;page++){
+      for(let page=first;page<=last&&page<totalPages;page++){
         const pageTop=page*cssPageHeight;
         const visibleTop=Math.max(top,pageTop);
         const visibleBottom=Math.min(bottom,pageTop+cssPageHeight);
@@ -601,18 +590,25 @@ async function downloadPDF(html, filename){
         const y=(visibleTop-pageTop)*mmY;
         const w=Math.max(2,r.width*mmX);
         const h=Math.max(3,(visibleBottom-visibleTop)*mmY);
-        if(el.href){
-          pdf.setPage(page+1);
-          pdf.link(x,y,w,h,{url:el.href});
-        }
+        if(el.href){pdf.setPage(page+1);pdf.link(x,y,w,h,{url:el.href});}
       }
     });
 
-    pdf.save(filename);
+    if(outputWindow&&!outputWindow.closed){
+      const blob=pdf.output('blob');
+      const blobUrl=URL.createObjectURL(blob);
+      outputWindow.location.replace(blobUrl);
+      // Keep the URL alive long enough for Safari's native PDF viewer/share UI.
+      window.setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
+    }else{
+      pdf.save(filename);
+    }
   }catch(err){
     console.error('Errore generazione PDF:',err);
+    outputWindow?.close();
     alert('Errore durante la generazione del PDF. Riprova dopo aver ricaricato la pagina.');
   }finally{
+    if(renderedCanvas){renderedCanvas.width=0;renderedCanvas.height=0;}
     document.body.classList.remove('pdf-rendering');
     holder.remove();
   }

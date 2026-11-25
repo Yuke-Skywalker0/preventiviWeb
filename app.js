@@ -44,12 +44,24 @@ function cleanEditorHtml(editor) {
     [...el.attributes].forEach(a => {
       const name=a.name.toLowerCase();
       const value=String(a.value||'').trim();
-      if(name.startsWith('on') || name==='contenteditable' || name==='srcdoc') {
+      if(name.startsWith('on') || name==='contenteditable' || name==='srcdoc' || name==='class') {
         el.removeAttribute(a.name);
         return;
       }
       if(name==='href') {
         if(!/^(https?:|mailto:|tel:)/i.test(value)) el.removeAttribute(a.name);
+      }
+      if(name==='style'){
+        const safe=[];
+        for(const declaration of value.split(';')){
+          const [property,...parts]=declaration.split(':');
+          const prop=property?.trim().toLowerCase(), val=parts.join(':').trim();
+          if(['color','font-weight','text-decoration','text-align'].includes(prop)&&
+             !/(url\\s*\\(|expression\\s*\\(|javascript:|position:|display:|\\bimportant\\b)/i.test(val)){
+            safe.push(prop+':'+val);
+          }
+        }
+        if(safe.length)el.setAttribute('style',safe.join(';'));else el.removeAttribute('style');
       }
       if(name==='src') {
         if(!/^data:image\/(png|jpeg|jpg|gif|webp);/i.test(value) && !/^https?:/i.test(value)) el.removeAttribute(a.name);
@@ -329,7 +341,7 @@ function buildServicePDF(){
     ${termsBlock(terms)}
     <div class="pdf-acceptance">Il committente dichiara di aver letto e accettato integralmente le condizioni sopra riportate.</div>
     <div class="pdf-signatures">
-      <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><div class="pdf-sign-space"></div><strong>Michele (Abilart Srls)</strong><small>Documento predisposto digitalmente</small></div>
+      <div class="pdf-signature"><span class="pdf-label">REFERENTE DELL'IMPRESA</span><div class="pdf-sign-space"></div><strong>Abilart Srls</strong><small>Documento predisposto dall'impresa</small></div>
       <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span class="pdf-sign-date">Data firma: ${dateIT(localISODate())}</span></div>
     </div>`;
   return pdfDocument('PREVENTIVO / CONTRATTO',number,date,content);
@@ -361,9 +373,9 @@ function buildEdilePDF(){
     ${pdfPayment($('#e-validity').value,$('#e-payment').value,issueDate)}
     ${pdfSectionTitle('CONDIZIONI GENERALI DI CONTRATTO')}
     ${termsBlock(terms)}
-    <div class="pdf-acceptance">Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile, il committente dichiara di aver letto e approvato specificamente le clausole contenute nel presente documento.</div>
+    <div class="pdf-acceptance">Il committente conferma di aver letto il documento, il perimetro delle opere, il riepilogo economico e le condizioni riportate. Le eventuali approvazioni specifiche previste dalla legge devono essere raccolte separatamente, con indicazione puntuale delle clausole.</div>
     <div class="pdf-signatures">
-      <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><div class="pdf-sign-space"></div><strong>Michele (Abilart Srls)</strong><small>Documento firmato digitalmente</small></div>
+      <div class="pdf-signature"><span class="pdf-label">REFERENTE DELL'IMPRESA</span><div class="pdf-sign-space"></div><strong>Abilart Srls</strong><small>Documento predisposto dall'impresa</small></div>
       <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['e-signature'].data())}<span class="pdf-sign-date">Data: ${escapeHtml(date||'—')}</span></div>
     </div>`;
   return pdfDocument('PREVENTIVO EDILE',number,date,content);
@@ -597,7 +609,7 @@ async function downloadPDF(html, filename, outputWindow=null){
 }
 function quoteBusinessCheck(form){
  const service=form.id==='service-form',ids=service?{base:'s-price',iva:'s-iva',deposit:'s-deposit',discount:null,validity:'s-validity',date:'s-date'}:{base:'e-price',iva:'e-iva',deposit:'e-deposit',discount:'e-discount',validity:'e-validity',date:'e-date'};
- const v=id=>document.getElementById(id).value.trim(),n=id=>numberIT(v(id)),pattern=/^-?(?:\\d+|\\d{1,3}(?:\\.\\d{3})+)(?:[,.]\\d{1,2})?$/;
+ const v=id=>document.getElementById(id).value.trim(),n=id=>numberIT(v(id)),pattern=/^-?(?:\d+|\d{1,3}(?:\.\d{3})+)(?:[,.]\d{1,2})?$/;
  for(const id of [ids.base,ids.iva,ids.deposit,ids.discount].filter(Boolean))if(v(id)&&!pattern.test(v(id).replace(/[€\\s]/g,''))){alert('Controlla gli importi: numeri validi e massimo due decimali.');return false;}
  const base=n(ids.base),iva=n(ids.iva),dep=n(ids.deposit),discount=ids.discount?n(ids.discount):0;
  if(!v(ids.base)||base<0||iva<0||iva>100||dep<0||discount<0||discount>base){alert('Imponibile, IVA, sconto e acconto non sono coerenti.');return false;}
@@ -614,7 +626,7 @@ $('#service-form').addEventListener('submit',async e=>{
   await downloadPDF(buildServicePDF(),`Preventivo_Abilart_${name}.pdf`,outputWindow);
 });
 $('#edile-form').addEventListener('submit',async e=>{
-  e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
+  e.preventDefault(); if(!requiredCheck(e.currentTarget)||!quoteBusinessCheck(e.currentTarget))return;
   const name=$('#e-name').value.trim().replace(/\s+/g,'_')||'Cliente';
   const outputWindow=preparePdfOutputWindow();
   await downloadPDF(buildEdilePDF(),`Preventivo_Edile_Abilart_${name}.pdf`,outputWindow);

@@ -60,6 +60,15 @@ test('PDF preserves editor bold, underline, bullet lists and selected text color
   assert.match(html, /data-cmd="insertUnorderedList"/);
 });
 
+test('rich editor nested wrappers and lists are traversed instead of flattened', () => {
+  assert.match(renderer, /function renderList\(list,depth=0\)/);
+  assert.match(renderer, /const nested=\[\.\.\.li\.querySelectorAll\('ul,ol'\)\]/);
+  assert.match(renderer, /content\.querySelectorAll\('ul,ol'\)\.forEach\(n=>n\.remove\(\)\)/);
+  assert.match(renderer, /function renderChildren\(parent\)/);
+  assert.match(renderer, /flush\(\);renderNode\(node\)/);
+  assert.match(renderer, /p\.circle\(bulletX,ctx\.y-1\.2/);
+});
+
 test('rich editor block paragraphs and escaped newline tokens render as actual line breaks', () => {
   assert.match(renderer, /isBlock=\['div','p','h1','h2','h3','h4','h5','h6'\]/);
   assert.match(renderer, /replace\(\/\\\\n\/g,'\\n'\)/);

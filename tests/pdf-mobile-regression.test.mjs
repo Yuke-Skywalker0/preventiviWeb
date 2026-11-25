@@ -85,3 +85,26 @@ test('work table splits oversized rows and repeats its heading on continued page
   assert.match(renderer, /paintRow\(\[\.\.\.header\.children\],headLines,headH,true\)/);
   assert.match(renderer, /segment=all\.map/);
 });
+
+test('PDF exposes clickable company, client, email, phone and map links', () => {
+  assert.match(renderer, /function addPdfLink/);
+  assert.match(renderer, /p\.link\(/);
+  assert.match(renderer, /mailto:/);
+  assert.match(renderer, /tel:/);
+  assert.match(renderer, /google\.com\/maps\/search/);
+  assert.match(renderer, /if\(r\.href\)addPdfLink/);
+  assert.match(renderer, /f\.anchors\?\.length/);
+});
+
+test('PDF visual hierarchy labels continuation and improves contract legibility', () => {
+  assert.match(renderer, /CONTINUA · PAG\./);
+  assert.match(renderer, /ctx\.y,176,8\.0/);
+  assert.match(renderer, /p\.setFontSize\(8\.4\)/);
+});
+
+test('economy avoids duplicate net taxable row without discount and signature uses acceptance date', () => {
+  assert.match(app, /<tr><td>IVA<\/td>/);
+  assert.match(app, /discount>0\?[\s\S]*?Imponibile netto/);
+  assert.equal((app.match(/Data di accettazione:/g)||[]).length,2);
+  assert.doesNotMatch(app, /Data: \$\{escapeHtml\(date\|\|'—'\)\}/);
+});

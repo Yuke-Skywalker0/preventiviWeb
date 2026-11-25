@@ -198,7 +198,7 @@ function createEngine(root,p,logo){
   if(lineRuns.length)renderLine();return y;
  }
  function richContent(el,x,w,size=8.4){
-  const blocks=[...el.children];if(!blocks.length){ctx.y=drawRichLine([{t:text(el),b:false,i:false,u:false}],x,ctx.y,w,size);return;}
+  const blocks=[...el.children];if(!blocks.length){ctx.y=drawRichLine(inlineRuns(el),x,ctx.y,w,size);return;}
   blocks.forEach(block=>{
    const tag=block.tagName.toLowerCase();
    if(tag==='ul'||tag==='ol'){[...block.children].forEach((li,index)=>{const runs=inlineRuns(li);ensure(size*1.2,4);const bulletX=x+3;if(tag==='ul'){fill(p,'blue');p.circle(bulletX,ctx.y-1.2,.65,'F');}else{p.setFont('helvetica','bold');p.setFontSize(size-1);setColor(p,'blue');p.text((index+1)+'.',bulletX,ctx.y);}ctx.y=drawRichLine(runs,x+7,ctx.y,w-7,size);ctx.y+=1.4;});}

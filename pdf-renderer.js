@@ -145,7 +145,7 @@ function createEngine(root,p,logo){
      if(p.getTextWidth(test)>maxW&&fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c,href:run.href});lineWidth=p.getTextWidth(fragment);renderLine();fragment=ch;}
      else fragment=test;
     });
-    if(fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth=p.getTextWidth(fragment);renderLine();}
+    if(fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c,href:run.href});lineWidth=p.getTextWidth(fragment);renderLine();}
     return;
    }
    if(lineWidth+ww>maxW&&lineRuns.length)renderLine();

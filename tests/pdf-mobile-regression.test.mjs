@@ -56,3 +56,11 @@ test('company website links are present in PDF header and footer', () => {
   assert.match(source, /data-pdf-link="site1"/);
   assert.match(source, /data-pdf-link="site2"/);
 });
+
+test('PDF content wraps safely without font compression or stretched images', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(css, /\.pdf-flow-document img\{[\s\S]*?height:auto/);
+  assert.match(css, /\.pdf-description-content,[\s\S]*?overflow-wrap:anywhere/);
+  assert.match(css, /\.pdf-flow-body table\{[\s\S]*?width:100%/);
+  assert.match(css, /\.pdf-flow-body \.pdf-signature img\{[\s\S]*?max-width:100%/);
+});

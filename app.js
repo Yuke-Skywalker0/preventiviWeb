@@ -427,39 +427,11 @@ function showPdfProgress(message){
 }
 
 function getPdfPageCuts(doc,pageHeight,fullHeight){
-  const rootTop=doc.getBoundingClientRect().top;
-  const lineEdges=[];
-  const walker=document.createTreeWalker(doc,NodeFilter.SHOW_TEXT,{
-    acceptNode(node){return node.nodeValue?.trim()?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}
-  });
-  let node;
-  while((node=walker.nextNode())){
-    const range=document.createRange();
-    range.selectNodeContents(node);
-    for(const rect of range.getClientRects()){
-      const edge=rect.bottom-rootTop;
-      if(edge>0&&edge<fullHeight) lineEdges.push(edge);
-    }
-    range.detach?.();
-  }
-  lineEdges.sort((x,y)=>x-y);
-  const cuts=[0];
+  // Exact A4 CSS page boundaries preserve the page aspect ratio.
+  // Avoid the previous per-text Range scan: variable-height slices were
+  // stretched to a full A4 image, visibly deforming content.
   const pageCount=Math.max(1,Math.ceil(fullHeight/pageHeight));
-  const snapTolerance=18; // roughly one line: avoid cutting through glyphs without moving paragraphs
-  for(let page=1;page<pageCount;page++){
-    const target=page*pageHeight;
-    let best=target,bestDistance=snapTolerance+1;
-    for(const edge of lineEdges){
-      const distance=Math.abs(edge-target);
-      if(distance>snapTolerance) continue;
-      if(edge-cuts[cuts.length-1]<pageHeight-48) continue;
-      if(fullHeight-edge<100) continue;
-      if(distance<bestDistance){best=edge;bestDistance=distance;}
-    }
-    cuts.push(best);
-  }
-  cuts.push(fullHeight);
-  return cuts;
+  return Array.from({length:pageCount+1},(_,index)=>Math.min(index*pageHeight,fullHeight));
 }
 async function downloadPDF(html, filename, outputWindow=null){
   if(typeof html2canvas==='undefined' || typeof window.jspdf==='undefined' || typeof window.jspdf.jsPDF==='undefined'){
@@ -493,10 +465,8 @@ async function downloadPDF(html, filename, outputWindow=null){
     pinFooterToLastPage(doc);
     await sleepFrame();
 
-    // Render one A4-sized crop at a time. A single canvas for the complete
-    // document exceeded Safari/iOS canvas and memory limits on long contracts.
-    // Keeping the same fixed document width and CSS page coordinates preserves
-    // the existing pagination while bounding each allocation to one page.
+    // Render exact A4 CSS viewports one page at a time. Fixed dimensions
+    // prevent vertical stretching and keep each canvas within safe limits.
     const cssWidth=794;
     const cssPageHeight=1123;
     const fullHeight=Math.ceil(doc.scrollHeight);
@@ -512,8 +482,7 @@ async function downloadPDF(html, filename, outputWindow=null){
       showPdfProgress(`Generazione PDF · pagina ${page+1} di ${totalPages}`);
       await sleepFrame();
       const pageTop=pageCuts[page];
-      const pageHeight=pageCuts[page+1]-pageTop;
-      if(pageHeight<=0) continue;
+      const pageHeight=cssPageHeight;
 
       renderedCanvas=await html2canvas(doc,{
         x:0,y:pageTop,width:cssWidth,height:pageHeight,
@@ -525,7 +494,7 @@ async function downloadPDF(html, filename, outputWindow=null){
       if(!renderedCanvas.width||!renderedCanvas.height) throw new Error(`Canvas PDF vuoto alla pagina ${page+1}`);
 
       if(page>0) pdf.addPage('a4','portrait');
-      pdf.addImage(renderedCanvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,210,297,undefined,'FAST');
+      pdf.addImage(renderedCanvas,'JPEG',0,0,210,297,undefined,'FAST');
       addPdfWatermark(pdf,page,totalPages,title);
 
       // Release the large backing store before allocating the next page.
@@ -542,11 +511,11 @@ async function downloadPDF(html, filename, outputWindow=null){
       const top=r.top-docRect.top, bottom=r.bottom-docRect.top;
       for(let page=0;page<totalPages;page++){
         const pageTop=pageCuts[page];
-        const pageBottom=pageCuts[page+1];
+        const pageBottom=Math.min(pageTop+cssPageHeight,fullHeight);
         const visibleTop=Math.max(top,pageTop);
         const visibleBottom=Math.min(bottom,pageBottom);
         if(visibleBottom<=visibleTop) continue;
-        const mmY=297/(pageBottom-pageTop);
+        const mmY=297/cssPageHeight;
         const x=(r.left-docRect.left)*mmX;
         const y=(visibleTop-pageTop)*mmY;
         const w=Math.max(2,r.width*mmX);

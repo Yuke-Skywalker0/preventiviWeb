@@ -263,9 +263,8 @@ function pdfEconomy(base,discount,dep,ivaP){
   return `<div class="pdf-economy">
     <table class="pdf-money">
       <tr><td>Imponibile</td><td>${euro(base)}</td></tr>
-      ${discount>0?`<tr><td>Sconto</td><td>− ${euro(discount)}</td></tr>`:''}
-      <tr><td>Imponibile netto</td><td>${euro(net)}</td></tr>
-      <tr><td>Imposta sul valore aggiunto</td><td>${escapeHtml(ivaP)}% &nbsp;&nbsp; ${euro(iva)}</td></tr>
+      ${discount>0?`<tr><td>Sconto</td><td>− ${euro(discount)}</td></tr><tr><td>Imponibile netto</td><td>${euro(net)}</td></tr>`:''}
+      <tr><td>IVA</td><td>${escapeHtml(ivaP)}% &nbsp;&nbsp; ${euro(iva)}</td></tr>
       <tr><td>Acconto</td><td>${euro(dep)}</td></tr>
       <tr class="pdf-total"><td>TOTALE</td><td>${euro(total)}</td></tr>
       <tr class="pdf-balance"><td>Saldo residuo</td><td>${euro(balance)}</td></tr>
@@ -342,7 +341,7 @@ function buildServicePDF(){
     <div class="pdf-acceptance">Il committente dichiara di aver letto e accettato integralmente le condizioni sopra riportate.</div>
     <div class="pdf-signatures">
       <div class="pdf-signature"><span class="pdf-label">REFERENTE DELL'IMPRESA</span><div class="pdf-sign-space"></div><strong>Abilart Srls</strong><small>Documento predisposto dall'impresa</small></div>
-      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span class="pdf-sign-date">Data firma: ${dateIT(localISODate())}</span></div>
+      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span class="pdf-sign-date">Data di accettazione: ${dateIT(localISODate())}</span></div>
     </div>`;
   return pdfDocument('PREVENTIVO / CONTRATTO',number,date,content);
 }
@@ -376,7 +375,7 @@ function buildEdilePDF(){
     <div class="pdf-acceptance">Il committente conferma di aver letto il documento, il perimetro delle opere, il riepilogo economico e le condizioni riportate. Le eventuali approvazioni specifiche previste dalla legge devono essere raccolte separatamente, con indicazione puntuale delle clausole.</div>
     <div class="pdf-signatures">
       <div class="pdf-signature"><span class="pdf-label">REFERENTE DELL'IMPRESA</span><div class="pdf-sign-space"></div><strong>Abilart Srls</strong><small>Documento predisposto dall'impresa</small></div>
-      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['e-signature'].data())}<span class="pdf-sign-date">Data: ${escapeHtml(date||'—')}</span></div>
+      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['e-signature'].data())}<span class="pdf-sign-date">Data di accettazione: ${dateIT(localISODate())}</span></div>
     </div>`;
   return pdfDocument('PREVENTIVO EDILE',number,date,content);
 }

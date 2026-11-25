@@ -96,9 +96,14 @@ test('PDF exposes clickable company, client, email, phone and map links', () => 
   assert.match(renderer, /f\.anchors\?\.length/);
 });
 
-test('PDF visual hierarchy labels continuation and improves contract legibility', () => {
-  assert.match(renderer, /CONTINUA · PAG\./);
+test('PDF visual hierarchy uses clean headers, continuous frames and a safe footer', () => {
+  assert.doesNotMatch(renderer, /CONTINUA · PAG\.|DOCUMENTO IN CONTINUAZIONE|Condizioni generali · continua/);
   assert.match(renderer, /ctx\.y,176,8\.0/);
+  assert.match(renderer, /flowFrame/);
+  assert.match(renderer, /bottom:269,width:182/);
+  assert.match(renderer, /p\.line\(14,276,196,276\)/);
+  assert.match(renderer, /p\.text\('Pagina '\+i\+' \/ '\+n,196,283/);
+  assert.match(renderer, /pale:\[247,250,252\]/);
   assert.match(renderer, /p\.setFontSize\(8\.4\)/);
 });
 

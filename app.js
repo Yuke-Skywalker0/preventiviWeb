@@ -367,66 +367,6 @@ function buildEdilePDF(){
 }
 
 function sleepFrame(){ return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))); }
-function stabilizeFlowBreaks(doc){
-  const pageHeight=1123;
-  const root=doc.getBoundingClientRect();
-  const topSafe=34;
-  const bottomSafe=38;
-  const continuationMin=96;
-
-  const pagePosOf=el=>{
-    const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const pagePos=((top % pageHeight)+pageHeight)%pageHeight;
-    return {r,top,pagePos,remaining:pageHeight-pagePos};
-  };
-
-  const addMarginTop=el=>{
-    const current=parseFloat(getComputedStyle(el).marginTop)||0;
-    const info=pagePosOf(el);
-    const amount=Math.max(0, info.remaining + topSafe);
-    if(amount>0 && amount<pageHeight) el.style.marginTop=`${current+amount}px`;
-  };
-
-  const pushShortBlock=el=>{
-    const info=pagePosOf(el);
-    const h=info.r.height;
-    if(info.pagePos<=topSafe) return;
-    if(h>=pageHeight-(topSafe+bottomSafe)) return;
-    if(info.remaining < h+bottomSafe) addMarginTop(el);
-  };
-
-  // Section headings: never leave an orphan heading at the bottom.
-  // Long description/terms blocks are intentionally allowed to continue on
-  // the next page, so they are NOT moved as a whole just because they are tall.
-  doc.querySelectorAll('.pdf-title').forEach(title=>{
-    const next=title.nextElementSibling;
-    if(!next) return;
-    const titleInfo=pagePosOf(title);
-    const nextH=next.getBoundingClientRect().height;
-    const isLongFlow=next.classList.contains('pdf-description-flow') || next.classList.contains('pdf-terms-box');
-    const minimumNeeded=titleInfo.r.height + 12 + (isLongFlow ? continuationMin : Math.min(nextH, 180));
-    if(titleInfo.pagePos>topSafe && titleInfo.remaining < minimumNeeded + bottomSafe) addMarginTop(title);
-  });
-
-  // Compact cards stay together when they fit; large flowing boxes do not get
-  // artificially pushed to a new page (that was the source of large white gaps).
-  doc.querySelectorAll('.pdf-client-box, .pdf-flow-body > .pdf-box:not(.pdf-description-flow), .pdf-economy, .pdf-payment, .pdf-acceptance, .pdf-signatures').forEach(pushShortBlock);
-
-  // Tables: keep rows intact where possible, but allow a long table to span pages.
-  doc.querySelectorAll('.pdf-table tbody tr').forEach(row=>{
-    const info=pagePosOf(row);
-    if(info.pagePos>topSafe && info.remaining < info.r.height+bottomSafe && info.r.height < pageHeight-(topSafe+bottomSafe)) addMarginTop(row);
-  });
-
-  // Individual terms stay readable; the terms box itself remains one continuous
-  // one-column structure and can span pages naturally.
-  doc.querySelectorAll('.pdf-terms-box li').forEach(li=>{
-    const info=pagePosOf(li);
-    if(info.pagePos>topSafe && info.remaining < info.r.height+bottomSafe && info.r.height < pageHeight-(topSafe+bottomSafe)) addMarginTop(li);
-  });
-}
-
 function pinFooterToLastPage(doc){
   const footer=doc.querySelector('.pdf-document-footer');
   const body=doc.querySelector('.pdf-flow-body');

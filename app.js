@@ -463,45 +463,48 @@ function addPdfWatermark(pdf,pageIndex,total,title){
 function addContinuationPageBreathing(doc){
   const pageHeight=1123;
   const root=doc.getBoundingClientRect();
-  const pageGap=16;
+  const safeTop=28;
+  const safeBottom=34;
   const candidates=[
-    ...doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-terms-box li, .pdf-table tbody tr')
+    ...doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-description-content li, .pdf-terms-box li, .pdf-table tbody tr, .pdf-title, .pdf-acceptance')
   ];
+
+  // Keep readable semantic blocks on one page whenever their height allows it.
+  // Two passes handle blocks shifted by an earlier correction in the same flow.
+  for(let pass=0;pass<2;pass++){
+    let changed=false;
+    candidates.forEach(el=>{
+      const r=el.getBoundingClientRect();
+      const top=r.top-root.top;
+      const bottom=r.bottom-root.top;
+      const height=r.height;
+      if(height<=0||height>pageHeight-safeTop-safeBottom) return;
+      const pagePos=((top%pageHeight)+pageHeight)%pageHeight;
+      const startPage=Math.floor(Math.max(0,top)/pageHeight);
+      const endPage=Math.floor(Math.max(0,bottom-0.5)/pageHeight);
+      if(startPage===endPage) return;
+      // If a small block straddles the page cut, move it as a whole to the
+      // next page with a modest top breathing margin. This avoids sliced text.
+      if(pagePos>safeTop && pageHeight-pagePos<height+safeBottom){
+        const current=parseFloat(getComputedStyle(el).marginTop)||0;
+        const push=pageHeight-pagePos+safeTop;
+        el.style.marginTop=`${current+push}px`;
+        changed=true;
+      }
+    });
+    if(!changed) break;
+  }
+
+  // Mark truly long flowing items for diagnostics; do not move entire long
+  // paragraphs/lists or create oversized blank areas.
   candidates.forEach(el=>{
     const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const bottom=r.bottom-root.top;
-    const startPage=Math.floor(Math.max(0,top)/pageHeight);
-    const endPage=Math.floor(Math.max(0,bottom-0.5)/pageHeight);
-    if(endPage<=startPage) return;
-    // The element already crosses a page. Do not move or shrink it: the normal
-    // flow remains authoritative. This helper only marks the continuation so
-    // the renderer can keep the next fragment visually calm.
-    el.dataset.pdfContinuation='true';
-  });
-  // A tiny, non-invasive top padding is applied only to blocks that begin very
-  // close to an A4 boundary. It avoids text appearing glued to the page edge.
-  candidates.forEach(el=>{
-    const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const pagePos=((top%pageHeight)+pageHeight)%pageHeight;
-    if(pagePos>0 && pagePos<pageGap){
-      const current=parseFloat(getComputedStyle(el).marginTop)||0;
-      el.style.marginTop=`${current+(pageGap-pagePos)}px`;
+    const top=r.top-root.top,bottom=r.bottom-root.top;
+    if(Math.floor(Math.max(0,top)/pageHeight)!==Math.floor(Math.max(0,bottom-0.5)/pageHeight)){
+      el.dataset.pdfContinuation='true';
     }
   });
 }
-
-function preparePdfOutputWindow(){
-  // iOS Safari does not reliably download files after a long asynchronous render.
-  // Open a window synchronously from the submit gesture, then navigate it to the
-  // finished PDF Blob. Other browsers keep the normal download flow.
-  const ua=navigator.userAgent||'';
-  const isIOS=/iPad|iPhone|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(!isIOS) return null;
-  try{return window.open('about:blank','_blank');}catch(_){return null;}
-}
-
 async function downloadPDF(html, filename, outputWindow=null){
   if(typeof html2canvas==='undefined' || typeof window.jspdf==='undefined' || typeof window.jspdf.jsPDF==='undefined'){
     outputWindow?.close();

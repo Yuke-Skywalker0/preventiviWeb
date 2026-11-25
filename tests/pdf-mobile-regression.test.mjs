@@ -57,7 +57,7 @@ test('PDF preserves editor bold, underline, bullet lists and selected text color
   assert.match(renderer, /const hex=v\.match\(\/\^#\(\[0-9a-f\]\{3\}\|\[0-9a-f\]\{6\}\)\$\/i\)/);
   assert.match(renderer, /const fn=v\.match\(\/\^rgba\?\\\(/);
   assert.match(renderer, /text-decoration\\s\*:/);
-  assert.match(renderer, /insertUnorderedList/);
+  assert.match(html, /data-cmd="insertUnorderedList"/);
 });
 
 test('rich editor block paragraphs retain line breaks in the PDF', () => {

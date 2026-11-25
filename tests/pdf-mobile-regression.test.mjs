@@ -174,7 +174,7 @@ test('first-page client and economic summary have stronger spacing and typograph
   assert.match(renderer, /p\.setFontSize\(9\.3\)/);
   assert.match(renderer, /const rows=\[\.\.\.el\.querySelectorAll\('tr'\)\],x=128,w=68/);
   assert.match(renderer, /if\(\/\^IVA\$\/i\.test\(label\)\)/);
-  assert.match(renderer, /anchors\.map\(a=>a\.text\)\.join\('\\n'\)/);
+  assert.match(renderer, /anchors\.map\(a=>a\.text\)\.join\('  ·  '\)/);
 });
 
 test('service and renovation terms are condensed without dropping core clauses', () => {

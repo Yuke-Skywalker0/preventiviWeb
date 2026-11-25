@@ -16,26 +16,33 @@ test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.doesNotMatch(pdfFn, /height:fullHeight/);
 });
 
-test('page cuts follow nearby text line endings without moving whole blocks', () => {
+test('PDF page cuts follow nearby line ends without stretching slices', () => {
   assert.match(source, /function getPdfPageCuts\(doc,pageHeight,fullHeight\)/);
   assert.match(source, /range\.getClientRects\(\)/);
-  assert.match(source, /snapTolerance=18/);
-  assert.match(source, /pageCuts=getPdfPageCuts\(doc,cssPageHeight,fullHeight\)/);
-  assert.match(source, /pageTop=pageCuts\[page\]/);
-  assert.doesNotMatch(source, /el\.style\.marginTop/);
-  assert.doesNotMatch(source, /stabilizeFlowBreaks\(doc\)/);
-  assert.match(source, /for\(let page=0;page<totalPages;page\+\+\)/);
+  assert.match(source, /const tolerance=24/);
+  assert.match(pdfFn, /const pageHeight=pageCuts\[page\+1\]-pageTop/);
+  assert.match(pdfFn, /const imageHeightMm=pageHeight\*\(210\/cssWidth\)/);
+  assert.match(pdfFn, /pdf\.addImage\(renderedCanvas,'JPEG',0,0,210,imageHeightMm/);
+  assert.match(pdfFn, /const mmY=210\/cssWidth/);
+  assert.doesNotMatch(pdfFn, /renderedCanvas\.toDataURL/);
 });
 
-test('temporary canvases are released between pages and on errors', () => {
+test('PDF canvas is passed directly to jsPDF and temporary canvases are released', () => {
+  assert.match(pdfFn, /pdf\.addImage\(renderedCanvas,'JPEG'/);
+  assert.doesNotMatch(pdfFn, /renderedCanvas\.toDataURL/);
   assert.match(pdfFn, /renderedCanvas\.width=0/);
   assert.match(pdfFn, /renderedCanvas\.height=0/);
   assert.match(pdfFn, /finally\s*\{[\s\S]*?holder\.remove\(\)/);
 });
 
-test('iOS output uses a gesture-opened window and a Blob URL', () => {
+test('iOS uses a gesture-opened viewer while desktop triggers a Blob download', () => {
   assert.match(source, /function preparePdfOutputWindow\(\)/);
   assert.match(source, /window\.open\('about:blank','_blank'\)/);
+  assert.match(source, /if\(!isIOSPdfViewer\(\)\) return null/);
+  assert.match(pdfFn, /link\.download=filename/);
+  assert.match(pdfFn, /link\.click\(\)/);
+  assert.match(pdfFn, /showPdfProgress\(`Generazione PDF/);
+  assert.match(pdfFn, /renderScale=1\.25/);
   assert.match(pdfFn, /pdf\.output\('blob'\)/);
   assert.match(pdfFn, /outputWindow\.location\.replace\(blobUrl\)/);
   assert.match(source, /downloadPDF\(buildServicePDF\(\),[\s\S]*?outputWindow\)/);
@@ -49,13 +56,10 @@ test('company website links are present in PDF header and footer', () => {
   assert.match(source, /data-pdf-link="site2"/);
 });
 
-test('page geometry covers exact A4 CSS slices without exceeding document pages', () => {
-  const pageHeight = 1123;
-  for (const docHeight of [1, 1123, 1124, 2246, 9000, 16000]) {
-    const count = Math.max(1, Math.ceil(docHeight / pageHeight));
-    const slices = Array.from({ length: count }, (_, page) =>
-      Math.min(pageHeight, docHeight - page * pageHeight));
-    assert.equal(slices.reduce((sum, height) => sum + height, 0), docHeight);
-    assert.ok(slices.every(height => height > 0 && height <= pageHeight));
-  }
+test('PDF content wraps safely without font compression or stretched images', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(css, /\.pdf-flow-document img\{[\s\S]*?height:auto/);
+  assert.match(css, /\.pdf-description-content,[\s\S]*?overflow-wrap:anywhere/);
+  assert.match(css, /\.pdf-flow-body table\{[\s\S]*?width:100%/);
+  assert.match(css, /\.pdf-flow-body \.pdf-signature img\{[\s\S]*?max-width:100%/);
 });

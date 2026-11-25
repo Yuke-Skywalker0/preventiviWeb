@@ -401,18 +401,36 @@ function addPdfWatermark(pdf,pageIndex,total,title){
   pdf.restoreGraphicsState();
 }
 
+function isIOSPdfViewer(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+}
 function preparePdfOutputWindow(){
-  // Open synchronously during the submit gesture so iOS Safari does not block
-  // the PDF tab after the asynchronous canvas rendering completes.
-  try{
-    return window.open('about:blank','_blank');
-  }catch(err){
-    console.warn('Impossibile predisporre la scheda PDF:',err);
-    return null;
+  // iOS Safari needs a user-gesture-opened tab for reliable Blob PDF viewing.
+  // Desktop browsers should receive a real download instead of an empty tab.
+  if(!isIOSPdfViewer()) return null;
+  try{return window.open('about:blank','_blank');}
+  catch(err){console.warn('Impossibile predisporre la scheda PDF:',err);return null;}
+}
+function showPdfProgress(message){
+  let panel=document.getElementById('pdf-generation-status');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='pdf-generation-status';
+    panel.setAttribute('role','status');
+    panel.setAttribute('aria-live','polite');
+    panel.style.cssText='position:fixed;z-index:2147483647;left:50%;top:18px;transform:translateX(-50%);width:min(92vw,420px);padding:16px 20px;background:#173f57;color:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);font:600 14px/1.5 system-ui,sans-serif;text-align:center';
+    document.body.appendChild(panel);
   }
+  panel.textContent=message;
+  return panel;
 }
 
 function getPdfPageCuts(doc,pageHeight,fullHeight){
+  // Find nearby text-line endings once. A cut is moved only upward to a
+  // nearby line edge, never to the next paragraph or a distant block.
+  // The slice keeps its natural ratio: unused bottom space is white, not
+  // compensated by stretching or compressing the document.
   const rootTop=doc.getBoundingClientRect().top;
   const lineEdges=[];
   const walker=document.createTreeWalker(doc,NodeFilter.SHOW_TEXT,{
@@ -428,23 +446,23 @@ function getPdfPageCuts(doc,pageHeight,fullHeight){
     }
     range.detach?.();
   }
-  lineEdges.sort((x,y)=>x-y);
+  lineEdges.sort((a,b)=>a-b);
   const cuts=[0];
-  const pageCount=Math.max(1,Math.ceil(fullHeight/pageHeight));
-  const snapTolerance=18; // roughly one line: avoid cutting through glyphs without moving paragraphs
-  for(let page=1;page<pageCount;page++){
-    const target=page*pageHeight;
-    let best=target,bestDistance=snapTolerance+1;
-    for(const edge of lineEdges){
-      const distance=Math.abs(edge-target);
-      if(distance>snapTolerance) continue;
-      if(edge-cuts[cuts.length-1]<pageHeight-48) continue;
-      if(fullHeight-edge<100) continue;
-      if(distance<bestDistance){best=edge;bestDistance=distance;}
+  const tolerance=24;
+  while(cuts[cuts.length-1]<fullHeight){
+    const previous=cuts[cuts.length-1];
+    const target=previous+pageHeight;
+    if(target>=fullHeight){cuts.push(fullHeight);break;}
+    let cut=target;
+    for(let i=lineEdges.length-1;i>=0;i--){
+      const edge=lineEdges[i];
+      if(edge>target) continue;
+      if(edge<=previous+pageHeight*.82) break;
+      if(target-edge<=tolerance){cut=edge;break;}
+      if(target-edge>tolerance) break;
     }
-    cuts.push(best);
+    cuts.push(Math.max(previous+1,cut));
   }
-  cuts.push(fullHeight);
   return cuts;
 }
 async function downloadPDF(html, filename, outputWindow=null){
@@ -461,6 +479,7 @@ async function downloadPDF(html, filename, outputWindow=null){
   document.body.classList.add('pdf-rendering');
 
   let renderedCanvas=null;
+  const progress=showPdfProgress('Preparazione del preventivo…');
   try{
     const doc=holder.querySelector('.pdf-flow-document');
     const {jsPDF}=window.jspdf;
@@ -478,23 +497,24 @@ async function downloadPDF(html, filename, outputWindow=null){
     pinFooterToLastPage(doc);
     await sleepFrame();
 
-    // Render one A4-sized crop at a time. A single canvas for the complete
-    // document exceeded Safari/iOS canvas and memory limits on long contracts.
-    // Keeping the same fixed document width and CSS page coordinates preserves
-    // the existing pagination while bounding each allocation to one page.
+    // Render exact A4 CSS viewports one page at a time. Fixed dimensions
+    // prevent vertical stretching and keep each canvas within safe limits.
     const cssWidth=794;
     const cssPageHeight=1123;
     const fullHeight=Math.ceil(doc.scrollHeight);
     const pageCuts=getPdfPageCuts(doc,cssPageHeight,fullHeight);
     const totalPages=pageCuts.length-1;
-    const renderScale=1.5;
+    // A moderate scale cuts the pixel workload by ~44% versus 1.5x,
+    // while retaining readable A4 output on screens and standard printing.
+    const renderScale=1.25;
     const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true,putOnlyUsedFonts:true});
     const title=doc.querySelector('.pdf-doc-type')?.textContent?.trim()||'DOCUMENTO';
 
     for(let page=0;page<totalPages;page++){
+      showPdfProgress(`Generazione PDF · pagina ${page+1} di ${totalPages}`);
+      await sleepFrame();
       const pageTop=pageCuts[page];
       const pageHeight=pageCuts[page+1]-pageTop;
-      if(pageHeight<=0) continue;
 
       renderedCanvas=await html2canvas(doc,{
         x:0,y:pageTop,width:cssWidth,height:pageHeight,
@@ -506,7 +526,8 @@ async function downloadPDF(html, filename, outputWindow=null){
       if(!renderedCanvas.width||!renderedCanvas.height) throw new Error(`Canvas PDF vuoto alla pagina ${page+1}`);
 
       if(page>0) pdf.addPage('a4','portrait');
-      pdf.addImage(renderedCanvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,210,297,undefined,'FAST');
+      const imageHeightMm=pageHeight*(210/cssWidth);
+      pdf.addImage(renderedCanvas,'JPEG',0,0,210,imageHeightMm,undefined,'FAST');
       addPdfWatermark(pdf,page,totalPages,title);
 
       // Release the large backing store before allocating the next page.
@@ -527,7 +548,7 @@ async function downloadPDF(html, filename, outputWindow=null){
         const visibleTop=Math.max(top,pageTop);
         const visibleBottom=Math.min(bottom,pageBottom);
         if(visibleBottom<=visibleTop) continue;
-        const mmY=297/(pageBottom-pageTop);
+        const mmY=210/cssWidth;
         const x=(r.left-docRect.left)*mmX;
         const y=(visibleTop-pageTop)*mmY;
         const w=Math.max(2,r.width*mmX);
@@ -536,19 +557,32 @@ async function downloadPDF(html, filename, outputWindow=null){
       }
     });
 
+    showPdfProgress('Finalizzazione e download del PDF…');
+    const blob=pdf.output('blob');
+    const blobUrl=URL.createObjectURL(blob);
     if(outputWindow&&!outputWindow.closed){
-      const blob=pdf.output('blob');
-      const blobUrl=URL.createObjectURL(blob);
+      // iOS: native viewer provides Save to Files / Share when direct download
+      // support is inconsistent. The tab was opened synchronously on submit.
       outputWindow.location.replace(blobUrl);
-      // Keep the URL alive long enough for Safari's native PDF viewer/share UI.
-      window.setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
+      showPdfProgress('PDF pronto. Nella scheda aperta usa Condividi → Salva su File.');
+      window.setTimeout(()=>{URL.revokeObjectURL(blobUrl);progress.remove();},120000);
     }else{
-      pdf.save(filename);
+      // Desktop: explicitly trigger a browser download from the completed Blob.
+      const link=document.createElement('a');
+      link.href=blobUrl;
+      link.download=filename;
+      link.style.display='none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showPdfProgress('PDF generato: download avviato.');
+      window.setTimeout(()=>{URL.revokeObjectURL(blobUrl);progress.remove();},3000);
     }
   }catch(err){
     console.error('Errore generazione PDF:',err);
     outputWindow?.close();
-    alert('Errore durante la generazione del PDF. Riprova dopo aver ricaricato la pagina.');
+    progress.textContent='Generazione PDF non riuscita. Riprova; se il problema persiste, prova un documento più breve o aggiorna la pagina.';
+    window.setTimeout(()=>progress.remove(),7000);
   }finally{
     if(renderedCanvas){renderedCanvas.width=0;renderedCanvas.height=0;}
     document.body.classList.remove('pdf-rendering');

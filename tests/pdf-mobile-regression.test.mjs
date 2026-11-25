@@ -16,18 +16,18 @@ test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.doesNotMatch(pdfFn, /height:fullHeight/);
 });
 
-test('page cuts follow nearby text line endings without moving whole blocks', () => {
+test('A4 pagination uses fixed-height cuts and never distorts page slices', () => {
   assert.match(source, /function getPdfPageCuts\(doc,pageHeight,fullHeight\)/);
   assert.match(source, /range\.getClientRects\(\)/);
   assert.match(source, /snapTolerance=18/);
   assert.match(source, /pageCuts=getPdfPageCuts\(doc,cssPageHeight,fullHeight\)/);
-  assert.match(source, /pageTop=pageCuts\[page\]/);
+  assert.match(source, /pageTop=pageCuts\[page\]/);\n  assert.match(pdfFn, /const pageHeight=cssPageHeight/);\n  assert.match(pdfFn, /pdf\.addImage\(renderedCanvas,'JPEG',0,0,210,297/);\n  assert.match(pdfFn, /const mmY=297\/cssPageHeight/);
   assert.doesNotMatch(source, /el\.style\.marginTop/);
   assert.doesNotMatch(source, /stabilizeFlowBreaks\(doc\)/);
   assert.match(source, /for\(let page=0;page<totalPages;page\+\+\)/);
 });
 
-test('temporary canvases are released between pages and on errors', () => {
+test('PDF canvas is passed directly to jsPDF and temporary canvases are released', () => {\n  assert.match(pdfFn, /pdf\.addImage\(renderedCanvas,'JPEG'/);\n  assert.doesNotMatch(pdfFn, /renderedCanvas\.toDataURL/);
   assert.match(pdfFn, /renderedCanvas\.width=0/);
   assert.match(pdfFn, /renderedCanvas\.height=0/);
   assert.match(pdfFn, /finally\s*\{[\s\S]*?holder\.remove\(\)/);

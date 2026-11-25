@@ -644,3 +644,40 @@ body.pdf-rendering{overflow:hidden!important}
   orphans:3;
   widows:3;
 }
+
+
+/* PR polish: clearer company identity and contact hierarchy in generated PDFs. */
+.pdf-flow-document .pdf-company-meta a{
+  color:#245d78!important;
+  text-decoration:none!important;
+  font-weight:700;
+}
+.pdf-document-footer{
+  grid-template-columns:1.1fr 1.45fr 1.65fr 1.05fr!important;
+  column-gap:10px!important;
+  min-height:52px!important;
+  padding-top:9px!important;
+  font-size:6.8px!important;
+  line-height:1.45!important;
+}
+.pdf-document-footer .pdf-footer-brand strong{font-size:7.2px!important}
+.pdf-document-footer .pdf-footer-brand span{font-size:6.1px!important}
+.pdf-document-footer .pdf-footer-contact{font-size:6.8px!important}
+.pdf-document-footer .pdf-footer-sites{
+  font-size:7.1px!important;
+  font-weight:700!important;
+  gap:3px!important;
+}
+.pdf-document-footer .pdf-footer-sites::before{
+  content:"SITI WEB";
+  display:block;
+  color:#82919a;
+  font-size:5.8px;
+  font-weight:800;
+  letter-spacing:.07em;
+  margin-bottom:1px;
+}
+.pdf-document-footer .pdf-footer-address{
+  font-size:6.3px!important;
+  white-space:normal!important;
+}

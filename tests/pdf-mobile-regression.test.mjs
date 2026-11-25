@@ -67,6 +67,10 @@ test('rich editor block paragraphs and escaped newline tokens render as actual l
   assert.match(renderer, /const lineH=size\*\.44/);
 });
 
+test('plain-text editor newlines are not collapsed before PDF layout', () => {
+  assert.match(renderer, /drawRichLine\(inlineRuns\(el\),x,ctx\.y,w,size\)/);
+});
+
 test('editor sanitizer retains safe inline italic styles', () => {
   assert.match(app, /font-style/);
   assert.match(renderer, /nextItalic=i\|\|\(tag==='em'\|\|tag==='i'\|\|/);

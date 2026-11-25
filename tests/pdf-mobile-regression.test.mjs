@@ -59,3 +59,29 @@ test('both quote forms still call the direct PDF download flow', () => {
   assert.equal((app.match(/downloadPDF\(buildServicePDF\(\)/g)||[]).length,1);
   assert.equal((app.match(/downloadPDF\(buildEdilePDF\(\)/g)||[]).length,1);
 });
+
+test('long rich-text lines are split safely and paginated before the footer', () => {
+  assert.match(renderer, /if\(y\+lineH\+2>M\.bottom\)\{newPage\(\);y=ctx\.y;base=x\+indent;\}/);
+  assert.match(renderer, /if\(ww>maxW\)/);
+  assert.match(renderer, /\[\.\.\.word\]/);
+  assert.match(renderer, /maxW=w-indent/);
+});
+
+test('client card heights follow wrapped values instead of fixed row sizing', () => {
+  assert.match(renderer, /const lines=p\.splitTextToSize\(f\.value,cw-6\)/);
+  assert.match(renderer, /rows\[row\]=Math\.max/);
+  assert.match(renderer, /const h=rows\.reduce/);
+});
+
+test('description panel and economic recap use measured content heights', () => {
+  assert.doesNotMatch(renderer, /Math\.min\(estimated\+12,90\)/);
+  assert.match(renderer, /const actual=yy-start\+2;return actual/);
+  assert.match(renderer, /content-driven frame/);
+});
+
+test('work table splits oversized rows and repeats its heading on continued pages', () => {
+  assert.match(renderer, /const maxLines=Math\.max/);
+  assert.match(renderer, /const capacity=Math\.max/);
+  assert.match(renderer, /paintRow\(\[\.\.\.header\.children\],headLines,headH,true\)/);
+  assert.match(renderer, /segment=all\.map/);
+});

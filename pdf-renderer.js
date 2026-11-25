@@ -67,7 +67,7 @@ function createEngine(root,p,logo){
    p.text('Pagina '+i+' / '+n,196,283,{align:'right'});
   }
  }
- function newPage(){p.addPage();ctx.page=p.getNumberOfPages();ctx.y=M.top;header();if(ctx.flowFrame){ctx.flowFrame.page=ctx.page;ctx.flowFrame.lastY=ctx.y;}}
+ function newPage(){p.addPage();ctx.page=p.getNumberOfPages();ctx.y=M.top;header();if(ctx.flowFrame){ctx.flowFrame.page=ctx.page;ctx.flowFrame.lastY=ctx.y-3.2;}}
  function ensure(h,keep=0){
   if(ctx.y+h+keep>M.bottom){newPage();return true;}return false;
  }

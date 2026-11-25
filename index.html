@@ -106,15 +106,17 @@
       </div>
 
       <div class="form-card">
-        <div class="section-heading"><span>04</span><h2>Economia e data</h2></div>
-        <div class="field-row">
-          <div class="field"><label for="s-date">Data intervento *</label><input id="s-date" name="intervention-date" type="date" required></div>
-          <div class="field"><label for="s-price">Prezzo imponibile (€) *</label><input id="s-price" name="price" required inputmode="decimal" placeholder="es. 1500,00"></div>
+        <div class="section-heading"><span>04</span><h2>Data preventivo e condizioni economiche</h2></div>
+        <div class="field-row three">
+          <div class="field"><label for="s-date">Data emissione preventivo *</label><input id="s-date" name="quote-date" type="date" required></div>
+          <div class="field"><label for="s-work-date">Data intervento prevista</label><input id="s-work-date" name="planned-intervention-date" type="date"></div>
+          <div class="field"><label for="s-price">Imponibile (€) *</label><input id="s-price" name="price" required inputmode="decimal" placeholder="es. 1500,00"></div>
         </div>
         <div class="field-row three">
           <div class="field"><label for="s-deposit">Acconto (€)</label><input id="s-deposit" name="deposit" inputmode="decimal" placeholder="0,00"></div>
           <div class="field narrow"><label for="s-iva">IVA (%) *</label><input id="s-iva" name="iva" value="22" required inputmode="decimal"></div>
-          <div class="field"><label for="s-validity">Validità preventivo</label><input id="s-validity" name="quote-validity" placeholder="es. 15 giorni"></div>
+          <div class="field"><label for="s-validity">Validità preventivo (giorni) *</label><input id="s-validity" type="number" min="1" max="365" step="1" value="15" required><small class="field-hint">Scadenza calcolata dalla data di emissione.</small></div>
+          <div class="field"><label for="s-payment">Metodo di pagamento</label><select id="s-payment"><option>Bonifico bancario</option><option>Contanti, nei limiti di legge</option><option>Assegno</option><option>Da concordare</option></select></div>
         </div>
 
         <div class="calculation-box">
@@ -201,9 +203,10 @@
               <option>Rifacimento completo</option><option>Manutenzione straordinaria</option>
             </select>
           </div>
-          <div class="field"><label for="e-date">Data preventivo / intervento *</label><input id="e-date" type="date" required></div>
+          <div class="field"><label for="e-date">Data emissione preventivo *</label><input id="e-date" type="date" required></div>
         </div>
         <div class="field-row three">
+          <div class="field"><label for="e-work-date">Data intervento prevista</label><input id="e-work-date" type="date"></div>
           <div class="field"><label for="e-area">Superficie indicativa (mq)</label><input id="e-area" placeholder="es. 85"></div>
           <div class="field"><label for="e-duration">Durata stimata lavori</label><input id="e-duration" placeholder="es. 20 giorni lavorativi"></div>
           <div class="field"><label for="e-urgency">Urgenza</label>
@@ -251,7 +254,7 @@
         </div>
         <div class="field-row">
           <div class="field"><label for="e-payment">Pagamento</label><select id="e-payment"><option>Bonifico bancario</option><option>Contanti</option><option>Assegno</option><option>Rateizzato</option><option>Da concordare</option></select></div>
-          <div class="field"><label for="e-validity">Validità preventivo</label><input id="e-validity" placeholder="es. 15 giorni"></div>
+          <div class="field"><label for="e-validity">Validità preventivo (giorni) *</label><input id="e-validity" type="number" min="1" max="365" step="1" value="15" required><small class="field-hint">Scadenza calcolata dalla data di emissione.</small></div>
         </div>
 
         <div class="calculation-box">

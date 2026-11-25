@@ -7,9 +7,6 @@ const start = source.indexOf('async function downloadPDF(');
 const end = source.indexOf("\n$('#service-form').addEventListener", start);
 assert.ok(start >= 0 && end > start, 'PDF function boundaries must exist');
 const pdfFn = source.slice(start, end);
-const paginationStart = source.indexOf('function addContinuationPageBreathing(');
-const paginationEnd = source.indexOf('\nasync function downloadPDF', paginationStart);
-const paginationFn = source.slice(paginationStart, paginationEnd);
 
 test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.match(pdfFn, /for\s*\(let page=0;page<totalPages;page\+\+\)/);

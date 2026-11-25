@@ -391,13 +391,13 @@ function pinFooterToLastPage(doc){
 }
 
 function addPdfWatermark(pdf,pageIndex,total,title){
-  // Watermark is already baked into the document BACKGROUND by html2canvas.
-  // Only the page number is added here, in the safe bottom margin.
+  // The pagination label lives in a dedicated bottom-safe band, outside the
+  // rasterized content area and consistently aligned on every A4 page.
   pdf.saveGraphicsState();
-  pdf.setTextColor(128,143,151);
+  pdf.setTextColor(83,105,116);
   pdf.setFont('helvetica','normal');
-  pdf.setFontSize(6.5);
-  pdf.text(`${title}  •  PAGINA ${pageIndex+1} / ${total}`,198,273,{align:'right'});
+  pdf.setFontSize(8);
+  pdf.text(`${title}  ·  PAGINA ${pageIndex+1} / ${total}`,196,284,{align:'right'});
   pdf.restoreGraphicsState();
 }
 
@@ -406,9 +406,9 @@ function isIOSPdfViewer(){
     (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
 }
 function preparePdfOutputWindow(){
-  // iOS Safari needs a user-gesture-opened tab for reliable Blob PDF viewing.
-  // Desktop browsers should receive a real download instead of an empty tab.
-  if(!isIOSPdfViewer()) return null;
+  // Open synchronously from the submit gesture on every platform. The finished
+  // Blob replaces this tab; the browser's PDF toolbar gives the user control
+  // over download, print and sharing rather than forcing an automatic download.
   try{return window.open('about:blank','_blank');}
   catch(err){console.warn('Impossibile predisporre la scheda PDF:',err);return null;}
 }
@@ -426,11 +426,9 @@ function showPdfProgress(message){
   return panel;
 }
 
-function getPdfPageCuts(doc,pageHeight,fullHeight){
-  // Find nearby text-line endings once. A cut is moved only upward to a
-  // nearby line edge, never to the next paragraph or a distant block.
-  // The slice keeps its natural ratio: unused bottom space is white, not
-  // compensated by stretching or compressing the document.
+function getPdfPageCuts(doc,safePageHeight,fullHeight,maxPageHeight=1123){
+  // Reserve a real lower safety band on intermediate pages. Cuts prefer
+  // text-line bottoms and avoid orphaning section headings from their content.
   const rootTop=doc.getBoundingClientRect().top;
   const lineEdges=[];
   const walker=document.createTreeWalker(doc,NodeFilter.SHOW_TEXT,{
@@ -438,8 +436,7 @@ function getPdfPageCuts(doc,pageHeight,fullHeight){
   });
   let node;
   while((node=walker.nextNode())){
-    const range=document.createRange();
-    range.selectNodeContents(node);
+    const range=document.createRange(); range.selectNodeContents(node);
     for(const rect of range.getClientRects()){
       const edge=rect.bottom-rootTop;
       if(edge>0&&edge<fullHeight) lineEdges.push(edge);
@@ -447,21 +444,33 @@ function getPdfPageCuts(doc,pageHeight,fullHeight){
     range.detach?.();
   }
   lineEdges.sort((a,b)=>a-b);
+  const protectedRanges=[];
+  doc.querySelectorAll('.pdf-title').forEach(title=>{
+    const next=title.nextElementSibling;
+    if(!next) return;
+    const a=title.getBoundingClientRect(), b=next.getBoundingClientRect();
+    const top=a.top-rootTop, bottom=b.bottom-rootTop;
+    if(bottom-top<Math.min(330,safePageHeight*.42)) protectedRanges.push({top,bottom});
+  });
+  doc.querySelectorAll('.pdf-client-box,.pdf-economy,.pdf-payment,.pdf-acceptance,.pdf-signatures,.pdf-table tbody tr').forEach(el=>{
+    const r=el.getBoundingClientRect(), top=r.top-rootTop, bottom=r.bottom-rootTop;
+    if(bottom-top<safePageHeight*.72) protectedRanges.push({top,bottom});
+  });
   const cuts=[0];
-  const tolerance=24;
   while(cuts[cuts.length-1]<fullHeight){
     const previous=cuts[cuts.length-1];
-    const target=previous+pageHeight;
-    if(target>=fullHeight){cuts.push(fullHeight);break;}
+    const target=previous+safePageHeight;
+    // Let the final page use the full A4 height so the final footer and
+    // signature area are not stranded at the top of a tiny trailing slice.
+    if(fullHeight-target<=safePageHeight){cuts.push(fullHeight);break;}
     let cut=target;
-    for(let i=lineEdges.length-1;i>=0;i--){
-      const edge=lineEdges[i];
-      if(edge>target) continue;
-      if(edge<=previous+pageHeight*.82) break;
-      if(target-edge<=tolerance){cut=edge;break;}
-      if(target-edge>tolerance) break;
-    }
-    cuts.push(Math.max(previous+1,cut));
+    const lower=previous+safePageHeight*.76;
+    const candidates=lineEdges.filter(edge=>edge>=lower&&edge<=target&&target-edge<=42);
+    if(candidates.length) cut=candidates[candidates.length-1];
+    const conflict=protectedRanges.find(r=>cut>r.top&&cut<r.bottom);
+    if(conflict&&conflict.top>previous+safePageHeight*.62) cut=conflict.top;
+    if(cut<=previous+safePageHeight*.55) cut=target;
+    cuts.push(Math.max(previous+1,Math.min(target,cut)));
   }
   return cuts;
 }
@@ -492,17 +501,16 @@ async function downloadPDF(html, filename, outputWindow=null){
 
     await document.fonts?.ready;
     await sleepFrame();
-    pinFooterToLastPage(doc);
-    await sleepFrame();
-    pinFooterToLastPage(doc);
-    await sleepFrame();
+    // Keep the footer in normal document flow. Manual pinning against full
+    // 1123px pages conflicted with the new reserved pagination band.
 
     // Render exact A4 CSS viewports one page at a time. Fixed dimensions
     // prevent vertical stretching and keep each canvas within safe limits.
     const cssWidth=794;
     const cssPageHeight=1123;
+    const safeContentHeight=1040; // ~22 mm reserved for page label and safe trim.
     const fullHeight=Math.ceil(doc.scrollHeight);
-    const pageCuts=getPdfPageCuts(doc,cssPageHeight,fullHeight);
+    const pageCuts=getPdfPageCuts(doc,safeContentHeight,fullHeight,cssPageHeight);
     const totalPages=pageCuts.length-1;
     // A moderate scale cuts the pixel workload by ~44% versus 1.5x,
     // while retaining readable A4 output on screens and standard printing.
@@ -557,26 +565,21 @@ async function downloadPDF(html, filename, outputWindow=null){
       }
     });
 
-    showPdfProgress('Finalizzazione e download del PDF…');
+    showPdfProgress('Finalizzazione del PDF e apertura dell’anteprima…');
     const blob=pdf.output('blob');
     const blobUrl=URL.createObjectURL(blob);
     if(outputWindow&&!outputWindow.closed){
-      // iOS: native viewer provides Save to Files / Share when direct download
-      // support is inconsistent. The tab was opened synchronously on submit.
       outputWindow.location.replace(blobUrl);
-      showPdfProgress('PDF pronto. Nella scheda aperta usa Condividi → Salva su File.');
-      window.setTimeout(()=>{URL.revokeObjectURL(blobUrl);progress.remove();},120000);
+      showPdfProgress('Anteprima PDF aperta in una nuova scheda. Da lì puoi visualizzare, stampare o scaricare.');
+      window.setTimeout(()=>{URL.revokeObjectURL(blobUrl);progress.remove();},300000);
     }else{
-      // Desktop: explicitly trigger a browser download from the completed Blob.
-      const link=document.createElement('a');
-      link.href=blobUrl;
-      link.download=filename;
-      link.style.display='none';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      showPdfProgress('PDF generato: download avviato.');
-      window.setTimeout(()=>{URL.revokeObjectURL(blobUrl);progress.remove();},3000);
+      // Popup blocked: do not download automatically. Offer an explicit link.
+      progress.textContent='Il browser ha bloccato la nuova scheda. Apri manualmente l’anteprima PDF:';
+      const openLink=document.createElement('a');
+      openLink.href=blobUrl; openLink.target='_blank'; openLink.rel='noopener';
+      openLink.textContent=' Apri PDF'; openLink.style.cssText='display:inline-block;margin-left:8px;color:#fff;text-decoration:underline;font-weight:800';
+      progress.appendChild(openLink);
+      window.setTimeout(()=>{URL.revokeObjectURL(blobUrl);progress.remove();},300000);
     }
   }catch(err){
     console.error('Errore generazione PDF:',err);

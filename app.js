@@ -401,6 +401,17 @@ function addPdfWatermark(pdf,pageIndex,total,title){
   pdf.restoreGraphicsState();
 }
 
+function preparePdfOutputWindow(){
+  // Open synchronously during the submit gesture so iOS Safari does not block
+  // the PDF tab after the asynchronous canvas rendering completes.
+  try{
+    return window.open('about:blank','_blank');
+  }catch(err){
+    console.warn('Impossibile predisporre la scheda PDF:',err);
+    return null;
+  }
+}
+
 function getPdfPageCuts(doc,pageHeight,fullHeight){
   const rootTop=doc.getBoundingClientRect().top;
   const lineEdges=[];

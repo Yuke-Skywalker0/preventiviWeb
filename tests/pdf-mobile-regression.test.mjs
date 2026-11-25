@@ -44,7 +44,7 @@ test('iOS output uses a gesture-opened window and a Blob URL', () => {
 
 test('company website links are present in PDF header and footer', () => {
   assert.match(source, /impresaedileabilart\.com/);
-  assert.match(source, /idraulicoservizi\\.it/);
+  assert.match(source, /idraulicoservizi[.]it/);
   assert.match(source, /data-pdf-link="site1"/);
   assert.match(source, /data-pdf-link="site2"/);
 });

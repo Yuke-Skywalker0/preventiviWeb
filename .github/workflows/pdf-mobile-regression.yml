@@ -17,5 +17,7 @@ jobs:
           node-version: 20
       - name: JavaScript syntax
         run: node --check app.js
+      - name: PDF renderer syntax
+        run: node --check pdf-renderer.js
       - name: PDF mobile regression tests
         run: node --test tests/*.test.mjs

@@ -65,16 +65,30 @@ function createEngine(root,p,logo){
  }
  function drawClient(el){
   clientCardTop=ctx.y;
-  const trs=[...el.querySelectorAll('tr')],fields=[];
-  trs.forEach(tr=>[...tr.children].forEach(cell=>{fields.push({label:text($(cell,'.pdf-label')),value:text(cell).replace(text($(cell,'.pdf-label')),'').trim()||'—'});}));
-  // Better 2-column cards with auto-sized rows; no labels concatenate with values.
-  const rows=Math.ceil(fields.length/2),w=112,h=Math.max(38,rows*17);
-  ensure(h+3,6);line(p,'line');fill(p,'white');p.roundedRect(14,ctx.y,w,h,1.5,1.5,'FD');
-  fields.forEach((f,i)=>{const row=Math.floor(i/2),col=i%2,cw=w/2,cx=14+col*cw,cy=ctx.y+row*17;
-   if(row){line(p,'line');p.line(14,cy,14+w,cy);}if(col){line(p,'line');p.line(cx,cy,cx,cy+17);}
-   labelValue(f.label,f.value,cx,cy,cw,17);
+  const fields=[];
+  [...el.querySelectorAll('tr')].forEach(tr=>[...tr.children].forEach(cell=>{
+   const label=text($(cell,'.pdf-label'));
+   fields.push({label,value:text(cell).replace(label,'').trim()||'—'});
+  }));
+  const w=112,cw=w/2,rows=[];
+  fields.forEach((f,i)=>{
+   p.setFont('helvetica','bold');p.setFontSize(8.2);
+   const lines=p.splitTextToSize(f.value,cw-6);
+   const row=Math.floor(i/2);rows[row]=Math.max(rows[row]||17,Math.max(17,lines.length*4.1+11));
   });
-  ctx.y+=h+2;
+  const h=rows.reduce((a,b)=>a+b,0);
+  ensure(h+3,6);const y0=ctx.y;line(p,'line');fill(p,'white');p.roundedRect(14,y0,w,h,1.5,1.5,'FD');
+  let rowY=y0;
+  rows.forEach((rh,row)=>{
+   if(row){line(p,'line');p.line(14,rowY,14+w,rowY);}
+   for(let col=0;col<2;col++){
+    const f=fields[row*2+col];if(!f)continue;const x=14+col*cw;
+    if(col){line(p,'line');p.line(x,rowY,x,rowY+rh);}
+    labelValue(f.label,f.value,x,rowY,cw,rh);
+   }
+   rowY+=rh;
+  });
+  ctx.y=y0+h+2;
  }
  function inlineRuns(node,bold=false,italic=false,underline=false,color=null){
   const out=[];
@@ -99,11 +113,29 @@ function createEngine(root,p,logo){
    if(colors[v])p.setTextColor(...colors[v]);else setColor(p,'ink');
   }
   function renderLine(){
+   if(y+lineH+2>M.bottom){newPage();y=ctx.y;base=x+indent;}
    if(!lineRuns.length){y+=lineH;lines++;return;}let xx=base;
    lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);applyColor(r.c);p.text(r.t,xx,y);if(r.u){applyColor(r.c);p.setLineWidth(.15);p.line(xx,y+.6,xx+p.getTextWidth(r.t),y+.6);}xx+=p.getTextWidth(r.t);});
    y+=lineH;lines++;lineRuns=[];lineWidth=0;
   }
-  runs.forEach(run=>{const chunks=run.t.replace(/\r/g,'').split(/(\s+|\n)/).filter(Boolean);chunks.forEach(word=>{if(word==='\n'){renderLine();return;}p.setFont('helvetica',run.b?(run.i?'bolditalic':'bold'):(run.i?'italic':'normal'));p.setFontSize(size);const ww=p.getTextWidth(word);if(lineWidth+ww>w-indent&&lineRuns.length)renderLine();lineRuns.push({t:word,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth+=ww;});});
+  runs.forEach(run=>{const chunks=run.t.replace(/\r/g,'').split(/(\s+|\n)/).filter(Boolean);chunks.forEach(word=>{
+   if(word==='\n'){renderLine();return;}
+   p.setFont('helvetica',run.b?(run.i?'bolditalic':'bold'):(run.i?'italic':'normal'));p.setFontSize(size);
+   const maxW=w-indent,ww=p.getTextWidth(word);
+   if(ww>maxW){
+    if(lineRuns.length)renderLine();
+    let fragment='';
+    [...word].forEach(ch=>{
+     const test=fragment+ch;
+     if(p.getTextWidth(test)>maxW&&fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth=p.getTextWidth(fragment);renderLine();fragment=ch;}
+     else fragment=test;
+    });
+    if(fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth=p.getTextWidth(fragment);renderLine();}
+    return;
+   }
+   if(lineWidth+ww>maxW&&lineRuns.length)renderLine();
+   lineRuns.push({t:word,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth+=ww;
+  });});
   if(lineRuns.length)renderLine();return y;
  }
  function richContent(el,x,w,size=8.4){
@@ -115,19 +147,28 @@ function createEngine(root,p,logo){
   });
  }
  function renderDescription(el){
-  const inner=$(el,'.pdf-description-content')||el;const estimated=Math.min(125,Math.max(30,text(inner).length*.17));
-  ensure(estimated+12,6);const x=14,w=182;line(p,'line');fill(p,'white');p.roundedRect(x,ctx.y,w,Math.min(estimated+12,90),1.5,1.5,'FD');
-  const start=ctx.y;ctx.y+=8;richContent(inner,x+5,w-10,8.4);ctx.y=Math.max(ctx.y,start+estimated+7);
+  const inner=$(el,'.pdf-description-content')||el;
+  ensure(12,6);const x=14,w=182,start=ctx.y;
+  // Use a content-driven frame: no capped height estimate, so long descriptions
+  // cannot spill out of a fixed 90 mm box or overlap the next section.
+  line(p,'line');p.setLineWidth(.45);p.line(x,start,x+w,start);
+  ctx.y+=7;richContent(inner,x+5,w-10,8.4);
+  line(p,'line');p.setLineWidth(.45);p.line(x,ctx.y+1,x+w,ctx.y+1);ctx.y+=5;
  }
  function renderEconomy(el){
-  const rows=[...el.querySelectorAll('tr')],x=130,w=66;let h=rows.length*7.3+8;ensure(h+3,6);
-  line(p,'blue');fill(p,'white');p.roundedRect(x,ctx.y,w,h,1.5,1.5,'FD');
-  let yy=ctx.y+6;
-  rows.forEach((tr,i)=>{const cells=[...tr.children],isTotal=tr.classList.contains('pdf-total'),isBalance=tr.classList.contains('pdf-balance');
+  const rows=[...el.querySelectorAll('tr')],x=130,w=66;
+  const estimate=rows.reduce((sum,tr)=>sum+(tr.classList.contains('pdf-total')?11:7.2),8);
+  ensure(estimate+3,6);
+  const start=ctx.y;line(p,'blue');fill(p,'white');p.roundedRect(x,start,w,estimate,1.5,1.5,'FD');
+  let yy=start+6;
+  rows.forEach(tr=>{const cells=[...tr.children],isTotal=tr.classList.contains('pdf-total'),isBalance=tr.classList.contains('pdf-balance');
    if(isTotal){fill(p,'blue');p.roundedRect(x,yy-4,w,11,1.2,1.2,'F');}
    p.setFont('helvetica',isTotal||isBalance?'bold':'normal');p.setFontSize(isTotal?8.6:7.1);setColor(p,isTotal?'white':'ink');
-   p.text(text(cells[0]),x+3,yy);p.text(text(cells[1]),x+w-3,yy,{align:'right'});yy+=isTotal?11:7.2;
-  });return h;
+   p.text(p.splitTextToSize(text(cells[0]),w*.55-4),x+3,yy);
+   p.text(p.splitTextToSize(text(cells[1]),w*.42-4),x+w-3,yy,{align:'right'});
+   yy+=isTotal?11:7.2;
+  });
+  const actual=yy-start+2;return actual;
  }
  function renderDataBox(el){
   const table=$(el,'table');if(!table){richContent(el,14,182,8);return;}
@@ -138,11 +179,34 @@ function createEngine(root,p,logo){
    });});ctx.y+=h+3;
  }
  function renderTable(el){
-  const table=$(el,'table');if(!table)return;const rows=[...table.querySelectorAll('tr')],widths=[23,67,16,17,28,31],x=14;
-  rows.forEach((tr,ri)=>{const cells=[...tr.children];let heights=cells.map((cell,i)=>{p.setFont('helvetica','normal');p.setFontSize(6.7);return p.splitTextToSize(text(cell),widths[i]-3).length*3.4+5;});let h=Math.max(8,...heights);ensure(h+1,3);let xx=x;
-   cells.forEach((cell,i)=>{if(ri===0){fill(p,'blue');line(p,'blue');p.rect(xx,ctx.y,widths[i],h,'FD');p.setFont('helvetica','bold');p.setFontSize(6.5);setColor(p,'white');}else{fill(p,'white');line(p,'line');p.rect(xx,ctx.y,widths[i],h,'FD');p.setFont('helvetica','normal');p.setFontSize(6.6);setColor(p,'ink');}
-    const lines=p.splitTextToSize(text(cell),widths[i]-3);p.text(lines,xx+1.5,ctx.y+4,{lineHeightFactor:1.15});xx+=widths[i];});ctx.y+=h;
-  });ctx.y+=3;
+  const table=$(el,'table');if(!table)return;
+  const rows=[...table.querySelectorAll('tr')],widths=[23,67,16,17,28,31],x=14,lineH=3.45;
+  const header=rows[0],body=rows.slice(1);
+  function paintRow(cells,linesByCell,h,isHeader){
+   let xx=x;
+   cells.forEach((cell,i)=>{
+    if(isHeader){fill(p,'blue');line(p,'blue');p.rect(xx,ctx.y,widths[i],h,'FD');p.setFont('helvetica','bold');p.setFontSize(6.5);setColor(p,'white');}
+    else{fill(p,'white');line(p,'line');p.rect(xx,ctx.y,widths[i],h,'FD');p.setFont('helvetica','normal');p.setFontSize(6.6);setColor(p,'ink');}
+    p.text(linesByCell[i],xx+1.5,ctx.y+4,{lineHeightFactor:1.15});xx+=widths[i];
+   });
+   ctx.y+=h;
+  }
+  const headLines=[...header.children].map((c,i)=>p.splitTextToSize(text(c),widths[i]-3));
+  const headH=Math.max(8,...headLines.map(a=>a.length*lineH+5));ensure(headH+1,3);paintRow([...header.children],headLines,headH,true);
+  body.forEach(tr=>{
+   const cells=[...tr.children],all=cells.map((c,i)=>p.splitTextToSize(text(c),widths[i]-3));
+   const maxLines=Math.max(1,...all.map(a=>a.length));let line=0;
+   while(line<maxLines){
+    const available=Math.max(1,Math.floor((M.bottom-ctx.y-5)/lineH));
+    if(available<1||ctx.y+lineH+5>M.bottom){newPage();paintRow([...header.children],headLines,headH,true);}
+    const capacity=Math.max(1,Math.floor((M.bottom-ctx.y-5)/lineH));
+    const count=Math.min(maxLines-line,capacity),segment=all.map(a=>a.slice(line,line+count));
+    const h=Math.max(8,...segment.map(a=>Math.max(1,a.length)*lineH+5));
+    paintRow(cells,segment,h,false);line+=count;
+    if(line<maxLines){newPage();paintRow([...header.children],headLines,headH,true);}
+   }
+  });
+  ctx.y+=3;
  }
  function renderPayment(el){
   const cards=[...el.children],w=89,h=17;ensure(h+3,4);

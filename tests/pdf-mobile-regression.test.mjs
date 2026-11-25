@@ -16,16 +16,15 @@ test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.doesNotMatch(pdfFn, /height:fullHeight/);
 });
 
-test('A4 pagination uses fixed cuts and preserves page aspect ratio', () => {
+test('PDF page cuts follow nearby line ends without stretching slices', () => {
   assert.match(source, /function getPdfPageCuts\(doc,pageHeight,fullHeight\)/);
-  assert.match(source, /pageCount=Math\.max\(1,Math\.ceil\(fullHeight\/pageHeight\)\)/);
-  assert.match(source, /index\*pageHeight/);
-  assert.doesNotMatch(source, /range\.getClientRects\(\)/);
-  assert.doesNotMatch(source, /snapTolerance=18/);
-  assert.match(source, /pageCuts=getPdfPageCuts\(doc,cssPageHeight,fullHeight\)/);
-  assert.match(pdfFn, /const pageHeight=cssPageHeight/);
-  assert.match(pdfFn, /pdf\.addImage\(renderedCanvas,'JPEG',0,0,210,297/);
-  assert.match(pdfFn, /const mmY=297\/cssPageHeight/);
+  assert.match(source, /range\.getClientRects\(\)/);
+  assert.match(source, /const tolerance=24/);
+  assert.match(pdfFn, /const pageHeight=pageCuts\[page\+1\]-pageTop/);
+  assert.match(pdfFn, /const imageHeightMm=pageHeight\*\(210\/cssWidth\)/);
+  assert.match(pdfFn, /pdf\.addImage\(renderedCanvas,'JPEG',0,0,210,imageHeightMm/);
+  assert.match(pdfFn, /const mmY=210\/cssWidth/);
+  assert.doesNotMatch(pdfFn, /renderedCanvas\.toDataURL/);
 });
 
 test('PDF canvas is passed directly to jsPDF and temporary canvases are released', () => {

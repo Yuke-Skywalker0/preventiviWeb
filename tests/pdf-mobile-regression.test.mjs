@@ -66,3 +66,4 @@ test('PDF content wraps safely without font compression or stretched images', as
   assert.match(css, /\.pdf-flow-body table\{[\s\S]*?width:100%/);
   assert.match(css, /\.pdf-flow-body \.pdf-signature img\{[\s\S]*?max-width:100%/);
 });
+

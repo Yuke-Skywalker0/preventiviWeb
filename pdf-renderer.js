@@ -75,22 +75,34 @@ function createEngine(root,p,logo){
   });
   ctx.y+=h+2;
  }
- function inlineRuns(node,bold=false,italic=false,underline=false){
-  const out=[];function walk(n,b,i,u){if(n.nodeType===3){if(n.nodeValue)out.push({t:n.nodeValue,b,i,u});return;}if(n.nodeType!==1)return;
-   const tag=n.tagName.toLowerCase();if(tag==='br'){out.push({t:'\n',b,i,u});return;}
-   walkChildren(n,b||tag==='strong'||tag==='b',i||tag==='em'||tag==='i',u||tag==='u');
-   function walkChildren(a,bb,ii,uu,cc){[...a.childNodes].forEach(ch=>walk(ch,bb,ii,uu,cc));}
-  }walk(node,bold,italic,underline,color);return out;
+ function inlineRuns(node,bold=false,italic=false,underline=false,color=null){
+  const out=[];
+  function walk(n,b,i,u,c){
+   if(n.nodeType===3){if(n.nodeValue)out.push({t:n.nodeValue,b,i,u,c});return;}
+   if(n.nodeType!==1)return;
+   const tag=n.tagName.toLowerCase(),style=n.getAttribute('style')||'';
+   const cm=style.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i),wm=style.match(/font-weight\s*:\s*([^;]+)/i),um=style.match(/text-decoration\s*:\s*([^;]+)/i);
+   const nextColor=cm?cm[1].trim():c;
+   const nextBold=b||(tag==='strong'||tag==='b'||!!(wm&&/(bold|[6-9]00)/i.test(wm[1])));
+   const nextUnder=u||(tag==='u'||!!(um&&/underline/i.test(um[1])));
+   if(tag==='br'){out.push({t:'\n',b:nextBold,i,u:nextUnder,c:nextColor});return;}
+   [...n.childNodes].forEach(ch=>walk(ch,nextBold,i||(tag==='em'||tag==='i'),nextUnder,nextColor));
+  }
+  walk(node,bold,italic,underline,color);return out;
  }
  function drawRichLine(runs,x,y,w,size,indent=0){
-  let lineRuns=[],lineWidth=0,lines=0,base=x+indent;
-  const lineH=size*.48;
-  function applyInlineColor(value){if(!value){setColor(p,'ink');return;}let v=String(value).toLowerCase().trim();const named={'#0073aa':[0,115,170],'rgb(0, 115, 170)':[0,115,170],'#c62828':[198,40,40],'rgb(198, 40, 40)':[198,40,40],'#000000':[0,0,0],'black':[0,0,0]};if(named[v])p.setTextColor(...named[v]);else setColor(p,'ink');}
-  function renderLine(){if(!lineRuns.length){y+=lineH;lines++;return;}let xx=base;
-   lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);applyInlineColor(r.c);p.text(r.t,xx,y);if(r.u){applyInlineColor(r.c);p.setLineWidth(.15);p.line(xx,y+0.6,xx+p.getTextWidth(r.t),y+0.6);}xx+=p.getTextWidth(r.t);});
+  let lineRuns=[],lineWidth=0,lines=0,base=x+indent;const lineH=size*.48;
+  function applyColor(value){
+   const v=String(value||'').toLowerCase().replace(/\s+/g,' ').trim();
+   const colors={'#0073aa':[0,115,170],'rgb(0, 115, 170)':[0,115,170],'#c62828':[198,40,40],'rgb(198, 40, 40)':[198,40,40],'#000000':[0,0,0],'black':[0,0,0]};
+   if(colors[v])p.setTextColor(...colors[v]);else setColor(p,'ink');
+  }
+  function renderLine(){
+   if(!lineRuns.length){y+=lineH;lines++;return;}let xx=base;
+   lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);applyColor(r.c);p.text(r.t,xx,y);if(r.u){applyColor(r.c);p.setLineWidth(.15);p.line(xx,y+.6,xx+p.getTextWidth(r.t),y+.6);}xx+=p.getTextWidth(r.t);});
    y+=lineH;lines++;lineRuns=[];lineWidth=0;
   }
-  runs.forEach(run=>{const chunks=run.t.replace(/\r/g,'').split(/(\s+|\n)/).filter(Boolean);chunks.forEach(word=>{if(word==='\n'){renderLine();return;}p.setFont('helvetica',run.b?(run.i?'bolditalic':'bold'):(run.i?'italic':'normal'));p.setFontSize(size);const ww=p.getTextWidth(word);if(lineWidth+ww>w-indent&&lineRuns.length){renderLine();}lineRuns.push({t:word,b:run.b,i:run.i,u:run.u});lineWidth+=ww;});});
+  runs.forEach(run=>{const chunks=run.t.replace(/\r/g,'').split(/(\s+|\n)/).filter(Boolean);chunks.forEach(word=>{if(word==='\n'){renderLine();return;}p.setFont('helvetica',run.b?(run.i?'bolditalic':'bold'):(run.i?'italic':'normal'));p.setFontSize(size);const ww=p.getTextWidth(word);if(lineWidth+ww>w-indent&&lineRuns.length)renderLine();lineRuns.push({t:word,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth+=ww;});});
   if(lineRuns.length)renderLine();return y;
  }
  function richContent(el,x,w,size=8.4){

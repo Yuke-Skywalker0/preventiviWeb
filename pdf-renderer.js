@@ -169,7 +169,7 @@ function createEngine(root,p,logo){
   const f=ctx.flowFrame;line(p,'line');p.setLineWidth(.4);const from=f?.lastY??ctx.y+1;p.line(x,from,x,ctx.y+1);p.line(x+w,from,x+w,ctx.y+1);p.line(x,ctx.y+1,x+w,ctx.y+1);ctx.flowFrame=null;ctx.y+=5;
  }
  function renderEconomy(el){
-  const rows=[...el.querySelectorAll('tr')],x=130,w=66;
+  const rows=[...el.querySelectorAll('tr')],x=134,w=62;
   const estimate=rows.reduce((sum,tr)=>sum+(tr.classList.contains('pdf-total')?13:8.5),8);
   ensure(estimate+3,6);
   const start=ctx.y;line(p,'blue');fill(p,'white');p.roundedRect(x,start,w,estimate,1.5,1.5,'FD');

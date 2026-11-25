@@ -100,6 +100,7 @@ test('PDF visual hierarchy uses clean headers, continuous frames and a safe foot
   assert.doesNotMatch(renderer, /CONTINUA · PAG\.|DOCUMENTO IN CONTINUAZIONE|Condizioni generali · continua/);
   assert.match(renderer, /drawRichLine\(lead,18,ctx\.y,172,8\.0\)/);
   assert.match(renderer, /flowFrame/);
+  assert.match(renderer, /from=Math\.max\(f\.lastY\?\?top,top\)/);
   assert.match(renderer, /bottom:269,width:182/);
   assert.match(renderer, /p\.line\(14,276,196,276\)/);
   assert.match(renderer, /p\.text\('Pagina '\+i\+' \/ '\+n,196,283/);

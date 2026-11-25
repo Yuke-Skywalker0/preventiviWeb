@@ -616,12 +616,14 @@ async function downloadPDF(html, filename, outputWindow=null){
 $('#service-form').addEventListener('submit',async e=>{
   e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
   const name=$('#s-name').value.trim().replace(/\s+/g,'_')||'Cliente';
-  await downloadPDF(buildServicePDF(),`Preventivo_Abilart_${name}.pdf`);
+  const outputWindow=preparePdfOutputWindow();
+  await downloadPDF(buildServicePDF(),`Preventivo_Abilart_${name}.pdf`,outputWindow);
 });
 $('#edile-form').addEventListener('submit',async e=>{
   e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
   const name=$('#e-name').value.trim().replace(/\s+/g,'_')||'Cliente';
-  await downloadPDF(buildEdilePDF(),`Preventivo_Edile_Abilart_${name}.pdf`);
+  const outputWindow=preparePdfOutputWindow();
+  await downloadPDF(buildEdilePDF(),`Preventivo_Edile_Abilart_${name}.pdf`,outputWindow);
 });
 
 document.addEventListener('DOMContentLoaded',()=>{

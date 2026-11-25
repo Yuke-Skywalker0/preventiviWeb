@@ -67,6 +67,11 @@ test('rich editor block paragraphs and escaped newline tokens render as actual l
   assert.match(renderer, /const lineH=size\*\.44/);
 });
 
+test('editor sanitizer retains safe inline italic styles', () => {
+  assert.match(app, /font-style/);
+  assert.match(renderer, /nextItalic=i\|\|\(tag==='em'\|\|tag==='i'\|\|/);
+});
+
 test('client address link is preserved as a full clickable Google Maps area', () => {
   assert.match(renderer, /const isAddress=/);
   assert.match(renderer, /addPdfLink\(p,x\+2,rowY\+6\.5,cw-4/);

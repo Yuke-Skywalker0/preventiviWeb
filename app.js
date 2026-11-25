@@ -204,6 +204,7 @@ function pdfPageHeader(title, number, date){
         <span>P. IVA / C.F. 10439280966</span>
         <span><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Via Caprera 2, 20851 Lissone MB, Italia')}" data-pdf-link="company-address">Via Caprera 2, 20851 Lissone (MB)</a></span>
         <span>Zone operative: Monza, Milano, Bergamo e relative province</span>
+        <span><a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a> · <a href="https://idraulicoservizi.it/" data-pdf-link="site2">idraulicoservizi.it</a></span>
         <span><a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a> &nbsp;·&nbsp; <a href="https://wa.me/393204295445" data-pdf-link="whatsapp">WhatsApp</a> &nbsp;·&nbsp; <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a></span>
       </div>
     </div>
@@ -271,7 +272,7 @@ function pdfFooter(){
     </div>
     <div class="pdf-footer-sites">
       <a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a>
-      <a href="https://idraulicoservizi.com/" data-pdf-link="site2">idraulicoservizi.com</a>
+      <a href="https://idraulicoservizi.it/" data-pdf-link="site2">idraulicoservizi.it</a>
     </div>
     <div class="pdf-footer-address"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Via Caprera 2, 20851 Lissone MB, Italia')}" data-pdf-link="company-address">Via Caprera 2 · Lissone (MB)</a></div>
   </div>`;
@@ -366,66 +367,6 @@ function buildEdilePDF(){
 }
 
 function sleepFrame(){ return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))); }
-function stabilizeFlowBreaks(doc){
-  const pageHeight=1123;
-  const root=doc.getBoundingClientRect();
-  const topSafe=34;
-  const bottomSafe=38;
-  const continuationMin=96;
-
-  const pagePosOf=el=>{
-    const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const pagePos=((top % pageHeight)+pageHeight)%pageHeight;
-    return {r,top,pagePos,remaining:pageHeight-pagePos};
-  };
-
-  const addMarginTop=el=>{
-    const current=parseFloat(getComputedStyle(el).marginTop)||0;
-    const info=pagePosOf(el);
-    const amount=Math.max(0, info.remaining + topSafe);
-    if(amount>0 && amount<pageHeight) el.style.marginTop=`${current+amount}px`;
-  };
-
-  const pushShortBlock=el=>{
-    const info=pagePosOf(el);
-    const h=info.r.height;
-    if(info.pagePos<=topSafe) return;
-    if(h>=pageHeight-(topSafe+bottomSafe)) return;
-    if(info.remaining < h+bottomSafe) addMarginTop(el);
-  };
-
-  // Section headings: never leave an orphan heading at the bottom.
-  // Long description/terms blocks are intentionally allowed to continue on
-  // the next page, so they are NOT moved as a whole just because they are tall.
-  doc.querySelectorAll('.pdf-title').forEach(title=>{
-    const next=title.nextElementSibling;
-    if(!next) return;
-    const titleInfo=pagePosOf(title);
-    const nextH=next.getBoundingClientRect().height;
-    const isLongFlow=next.classList.contains('pdf-description-flow') || next.classList.contains('pdf-terms-box');
-    const minimumNeeded=titleInfo.r.height + 12 + (isLongFlow ? continuationMin : Math.min(nextH, 180));
-    if(titleInfo.pagePos>topSafe && titleInfo.remaining < minimumNeeded + bottomSafe) addMarginTop(title);
-  });
-
-  // Compact cards stay together when they fit; large flowing boxes do not get
-  // artificially pushed to a new page (that was the source of large white gaps).
-  doc.querySelectorAll('.pdf-client-box, .pdf-flow-body > .pdf-box:not(.pdf-description-flow), .pdf-economy, .pdf-payment, .pdf-acceptance, .pdf-signatures').forEach(pushShortBlock);
-
-  // Tables: keep rows intact where possible, but allow a long table to span pages.
-  doc.querySelectorAll('.pdf-table tbody tr').forEach(row=>{
-    const info=pagePosOf(row);
-    if(info.pagePos>topSafe && info.remaining < info.r.height+bottomSafe && info.r.height < pageHeight-(topSafe+bottomSafe)) addMarginTop(row);
-  });
-
-  // Individual terms stay readable; the terms box itself remains one continuous
-  // one-column structure and can span pages naturally.
-  doc.querySelectorAll('.pdf-terms-box li').forEach(li=>{
-    const info=pagePosOf(li);
-    if(info.pagePos>topSafe && info.remaining < info.r.height+bottomSafe && info.r.height < pageHeight-(topSafe+bottomSafe)) addMarginTop(li);
-  });
-}
-
 function pinFooterToLastPage(doc){
   const footer=doc.querySelector('.pdf-document-footer');
   const body=doc.querySelector('.pdf-flow-body');
@@ -460,40 +401,55 @@ function addPdfWatermark(pdf,pageIndex,total,title){
   pdf.restoreGraphicsState();
 }
 
-function addContinuationPageBreathing(doc){
-  const pageHeight=1123;
-  const root=doc.getBoundingClientRect();
-  const pageGap=16;
-  const candidates=[
-    ...doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-terms-box li, .pdf-table tbody tr')
-  ];
-  candidates.forEach(el=>{
-    const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const bottom=r.bottom-root.top;
-    const startPage=Math.floor(Math.max(0,top)/pageHeight);
-    const endPage=Math.floor(Math.max(0,bottom-0.5)/pageHeight);
-    if(endPage<=startPage) return;
-    // The element already crosses a page. Do not move or shrink it: the normal
-    // flow remains authoritative. This helper only marks the continuation so
-    // the renderer can keep the next fragment visually calm.
-    el.dataset.pdfContinuation='true';
-  });
-  // A tiny, non-invasive top padding is applied only to blocks that begin very
-  // close to an A4 boundary. It avoids text appearing glued to the page edge.
-  candidates.forEach(el=>{
-    const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const pagePos=((top%pageHeight)+pageHeight)%pageHeight;
-    if(pagePos>0 && pagePos<pageGap){
-      const current=parseFloat(getComputedStyle(el).marginTop)||0;
-      el.style.marginTop=`${current+(pageGap-pagePos)}px`;
-    }
-  });
+function preparePdfOutputWindow(){
+  // Open synchronously during the submit gesture so iOS Safari does not block
+  // the PDF tab after the asynchronous canvas rendering completes.
+  try{
+    return window.open('about:blank','_blank');
+  }catch(err){
+    console.warn('Impossibile predisporre la scheda PDF:',err);
+    return null;
+  }
 }
 
-async function downloadPDF(html, filename){
+function getPdfPageCuts(doc,pageHeight,fullHeight){
+  const rootTop=doc.getBoundingClientRect().top;
+  const lineEdges=[];
+  const walker=document.createTreeWalker(doc,NodeFilter.SHOW_TEXT,{
+    acceptNode(node){return node.nodeValue?.trim()?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}
+  });
+  let node;
+  while((node=walker.nextNode())){
+    const range=document.createRange();
+    range.selectNodeContents(node);
+    for(const rect of range.getClientRects()){
+      const edge=rect.bottom-rootTop;
+      if(edge>0&&edge<fullHeight) lineEdges.push(edge);
+    }
+    range.detach?.();
+  }
+  lineEdges.sort((x,y)=>x-y);
+  const cuts=[0];
+  const pageCount=Math.max(1,Math.ceil(fullHeight/pageHeight));
+  const snapTolerance=18; // roughly one line: avoid cutting through glyphs without moving paragraphs
+  for(let page=1;page<pageCount;page++){
+    const target=page*pageHeight;
+    let best=target,bestDistance=snapTolerance+1;
+    for(const edge of lineEdges){
+      const distance=Math.abs(edge-target);
+      if(distance>snapTolerance) continue;
+      if(edge-cuts[cuts.length-1]<pageHeight-48) continue;
+      if(fullHeight-edge<100) continue;
+      if(distance<bestDistance){best=edge;bestDistance=distance;}
+    }
+    cuts.push(best);
+  }
+  cuts.push(fullHeight);
+  return cuts;
+}
+async function downloadPDF(html, filename, outputWindow=null){
   if(typeof html2canvas==='undefined' || typeof window.jspdf==='undefined' || typeof window.jspdf.jsPDF==='undefined'){
+    outputWindow?.close();
     alert('Il motore PDF non è stato caricato. Controlla la connessione Internet e ricarica la pagina.');
     return;
   }
@@ -504,6 +460,7 @@ async function downloadPDF(html, filename){
   document.body.appendChild(holder);
   document.body.classList.add('pdf-rendering');
 
+  let renderedCanvas=null;
   try{
     const doc=holder.querySelector('.pdf-flow-document');
     const {jsPDF}=window.jspdf;
@@ -516,103 +473,84 @@ async function downloadPDF(html, filename){
 
     await document.fonts?.ready;
     await sleepFrame();
-    stabilizeFlowBreaks(doc);
-    await sleepFrame();
     pinFooterToLastPage(doc);
-    await sleepFrame();
-    addContinuationPageBreathing(doc);
     await sleepFrame();
     pinFooterToLastPage(doc);
     await sleepFrame();
 
-    /*
-      IMPORTANTISSIMO:
-      non renderizziamo una pagina alla volta con html2canvas.
-      html2canvas puo' infatti ricomputare il viewport/crop e duplicare
-      porzioni del documento. Renderizziamo UNA SOLA VOLTA il flusso
-      completo e poi ritagliamo il canvas in pagine A4.
-    */
+    // Render one A4-sized crop at a time. A single canvas for the complete
+    // document exceeded Safari/iOS canvas and memory limits on long contracts.
+    // Keeping the same fixed document width and CSS page coordinates preserves
+    // the existing pagination while bounding each allocation to one page.
     const cssWidth=794;
     const cssPageHeight=1123;
     const fullHeight=Math.ceil(doc.scrollHeight);
+    const pageCuts=getPdfPageCuts(doc,cssPageHeight,fullHeight);
+    const totalPages=pageCuts.length-1;
     const renderScale=1.5;
-    const totalPages=Math.max(1,Math.ceil(fullHeight/cssPageHeight));
-
-    const fullCanvas=await html2canvas(doc,{
-      width:cssWidth,
-      height:fullHeight,
-      windowWidth:cssWidth,
-      windowHeight:Math.min(fullHeight,3000),
-      x:0,
-      y:0,
-      scale:renderScale,
-      useCORS:true,
-      allowTaint:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      scrollX:0,
-      scrollY:0,
-      imageTimeout:15000
-    });
-
     const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true,putOnlyUsedFonts:true});
     const title=doc.querySelector('.pdf-doc-type')?.textContent?.trim()||'DOCUMENTO';
 
-    for(let page=0; page<totalPages; page++){
-      const sourceY=page*cssPageHeight*renderScale;
-      const remaining=Math.min(cssPageHeight, fullHeight-page*cssPageHeight);
-      if(remaining<=0) continue;
+    for(let page=0;page<totalPages;page++){
+      const pageTop=pageCuts[page];
+      const pageHeight=pageCuts[page+1]-pageTop;
+      if(pageHeight<=0) continue;
 
-      const crop=document.createElement('canvas');
-      crop.width=Math.round(cssWidth*renderScale);
-      crop.height=Math.round(cssPageHeight*renderScale);
-      const ctx=crop.getContext('2d');
-      ctx.imageSmoothingEnabled=true;
-      ctx.imageSmoothingQuality='high';
-      ctx.fillStyle='#ffffff';
-      ctx.fillRect(0,0,crop.width,crop.height);
-      ctx.drawImage(
-        fullCanvas,
-        0, sourceY,
-        fullCanvas.width, Math.round(remaining*renderScale),
-        0, 0,
-        crop.width, Math.round(remaining*renderScale)
-      );
+      renderedCanvas=await html2canvas(doc,{
+        x:0,y:pageTop,width:cssWidth,height:pageHeight,
+        windowWidth:cssWidth,windowHeight:cssPageHeight,
+        scale:renderScale,useCORS:true,allowTaint:false,
+        backgroundColor:'#ffffff',logging:false,
+        scrollX:0,scrollY:0,imageTimeout:15000
+      });
+      if(!renderedCanvas.width||!renderedCanvas.height) throw new Error(`Canvas PDF vuoto alla pagina ${page+1}`);
 
       if(page>0) pdf.addPage('a4','portrait');
-      pdf.addImage(crop.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');
+      pdf.addImage(renderedCanvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,210,297,undefined,'FAST');
       addPdfWatermark(pdf,page,totalPages,title);
+
+      // Release the large backing store before allocating the next page.
+      renderedCanvas.width=0;
+      renderedCanvas.height=0;
+      renderedCanvas=null;
     }
 
-    // Link cliccabili: vengono ricostruiti sopra l'immagine, pagina per pagina.
+    // Rebuild clickable links over the rasterized pages.
     const docRect=doc.getBoundingClientRect();
-    const mmX=210/cssWidth, mmY=297/cssPageHeight;
+    const mmX=210/cssWidth;
     doc.querySelectorAll('[data-pdf-link]').forEach(el=>{
       const r=el.getBoundingClientRect();
       const top=r.top-docRect.top, bottom=r.bottom-docRect.top;
-      const first=Math.floor(Math.max(0,top)/cssPageHeight);
-      const last=Math.floor(Math.max(0,bottom-0.5)/cssPageHeight);
-      for(let page=first;page<=last && page<totalPages;page++){
-        const pageTop=page*cssPageHeight;
+      for(let page=0;page<totalPages;page++){
+        const pageTop=pageCuts[page];
+        const pageBottom=pageCuts[page+1];
         const visibleTop=Math.max(top,pageTop);
-        const visibleBottom=Math.min(bottom,pageTop+cssPageHeight);
+        const visibleBottom=Math.min(bottom,pageBottom);
         if(visibleBottom<=visibleTop) continue;
+        const mmY=297/(pageBottom-pageTop);
         const x=(r.left-docRect.left)*mmX;
         const y=(visibleTop-pageTop)*mmY;
         const w=Math.max(2,r.width*mmX);
         const h=Math.max(3,(visibleBottom-visibleTop)*mmY);
-        if(el.href){
-          pdf.setPage(page+1);
-          pdf.link(x,y,w,h,{url:el.href});
-        }
+        if(el.href){pdf.setPage(page+1);pdf.link(x,y,w,h,{url:el.href});}
       }
     });
 
-    pdf.save(filename);
+    if(outputWindow&&!outputWindow.closed){
+      const blob=pdf.output('blob');
+      const blobUrl=URL.createObjectURL(blob);
+      outputWindow.location.replace(blobUrl);
+      // Keep the URL alive long enough for Safari's native PDF viewer/share UI.
+      window.setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
+    }else{
+      pdf.save(filename);
+    }
   }catch(err){
     console.error('Errore generazione PDF:',err);
+    outputWindow?.close();
     alert('Errore durante la generazione del PDF. Riprova dopo aver ricaricato la pagina.');
   }finally{
+    if(renderedCanvas){renderedCanvas.width=0;renderedCanvas.height=0;}
     document.body.classList.remove('pdf-rendering');
     holder.remove();
   }
@@ -620,12 +558,14 @@ async function downloadPDF(html, filename){
 $('#service-form').addEventListener('submit',async e=>{
   e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
   const name=$('#s-name').value.trim().replace(/\s+/g,'_')||'Cliente';
-  await downloadPDF(buildServicePDF(),`Preventivo_Abilart_${name}.pdf`);
+  const outputWindow=preparePdfOutputWindow();
+  await downloadPDF(buildServicePDF(),`Preventivo_Abilart_${name}.pdf`,outputWindow);
 });
 $('#edile-form').addEventListener('submit',async e=>{
   e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
   const name=$('#e-name').value.trim().replace(/\s+/g,'_')||'Cliente';
-  await downloadPDF(buildEdilePDF(),`Preventivo_Edile_Abilart_${name}.pdf`);
+  const outputWindow=preparePdfOutputWindow();
+  await downloadPDF(buildEdilePDF(),`Preventivo_Edile_Abilart_${name}.pdf`,outputWindow);
 });
 
 document.addEventListener('DOMContentLoaded',()=>{

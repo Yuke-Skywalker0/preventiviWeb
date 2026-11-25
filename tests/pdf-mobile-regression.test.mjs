@@ -105,7 +105,7 @@ test('PDF visual hierarchy uses clean headers, continuous frames and a safe foot
   assert.match(renderer, /p\.line\(14,276,196,276\)/);
   assert.match(renderer, /p\.text\('Pagina '\+i\+' \/ '\+n,196,283/);
   assert.match(renderer, /pale:\[247,250,252\]/);
-  assert.match(renderer, /p\.setFontSize\(8\.4\)/);
+  assert.match(renderer, /p\.setFontSize\(9\.3\)/);
 });
 
 test('PDF description and terms panel fill remains continuous between paragraphs', () => {

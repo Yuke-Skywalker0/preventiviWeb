@@ -39,7 +39,7 @@ function createEngine(root,p,logo){
   if(ctx.y+h+keep>M.bottom){newPage();return true;}return false;
  }
  function band(label){
-  ensure(10,5);fill(p,'pale');p.rect(14,ctx.y,182,9.2,'F');fill(p,'blue');p.rect(14,ctx.y,1.2,9.2,'F');
+  ensure(10,18);fill(p,'pale');p.rect(14,ctx.y,182,9.2,'F');fill(p,'blue');p.rect(14,ctx.y,1.2,9.2,'F');
   p.setFont('helvetica','bold');p.setFontSize(8.2);setColor(p,'navy');p.text(label.toUpperCase(),18,ctx.y+6.1);ctx.y+=12;
  }
  function labelValue(label,value,x,y,w){
@@ -101,7 +101,7 @@ function createEngine(root,p,logo){
   });
  }
  function renderDescription(el){
-  const inner=$(el,'.pdf-description-content')||el;const estimated=Math.min(100,Math.max(28,inner.innerText.length*.14));
+  const inner=$(el,'.pdf-description-content')||el;const estimated=Math.min(125,Math.max(30,text(inner).length*.17));
   ensure(estimated+12,6);const x=14,w=182;line(p,'line');fill(p,'white');p.roundedRect(x,ctx.y,w,Math.min(estimated+12,90),1.5,1.5,'FD');
   const start=ctx.y;ctx.y+=8;richContent(inner,x+5,w-10,8.4);ctx.y=Math.max(ctx.y,start+estimated+7);
  }
@@ -135,7 +135,7 @@ function createEngine(root,p,logo){
   cards.forEach((card,i)=>{let x=14+i*(w+4);fill(p,'soft');line(p,'line');p.roundedRect(x,ctx.y,w,h,1.2,1.2,'FD');p.setFont('helvetica','normal');p.setFontSize(5.8);setColor(p,'muted');p.text(text($(card,'span')).toUpperCase(),x+3,ctx.y+5);p.setFont('helvetica','bold');p.setFontSize(7);setColor(p,'ink');p.text(p.splitTextToSize(text($(card,'strong')),w-6).slice(0,2),x+3,ctx.y+10.5);});ctx.y+=h+4;
  }
  function renderTerms(el){
-  const items=[...el.querySelectorAll('li')];items.forEach((li,i)=>{const runs=inlineRuns(li);const lead=[{t:(i+1)+'. ',b:true,i:false,u:false},...runs];ensure(7,4);ctx.y=drawRichLine(lead,18,ctx.y,176,7.4);ctx.y+=2.4;});
+  const items=[...el.querySelectorAll('li')];items.forEach((li,i)=>{const runs=inlineRuns(li);const lead=[{t:(i+1)+'. ',b:true,i:false,u:false},...runs];if(ensure(i===0?20:12,5))band('Condizioni generali · continua');ctx.y=drawRichLine(lead,18,ctx.y,176,7.4);ctx.y+=2.4;});
  }
  function renderSignatures(el){
   const cards=[...el.querySelectorAll('.pdf-signature')];const x0=14,w=89,gap=4,h=36;ensure(h+4,0);

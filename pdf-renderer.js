@@ -137,12 +137,12 @@ function createEngine(root,p,logo){
   const out=[];
   function walk(n,b,i,u,c,href=null){
    if(n.nodeType===3){
-    const value=String(n.nodeValue||'').replace(/\\r\\n?/g,'\\n').replace(/\\\\n/g,'\\n').replace(/\\\\r/g,'\\n');
+    const value=String(n.nodeValue||'').replace(/\r\n?/g,'\n').replace(/\\n/g,'\n').replace(/\\r/g,'\n');
     if(value)out.push({t:value,b,i,u,c,href});return;
    }
    if(n.nodeType!==1)return;
    const tag=n.tagName.toLowerCase(),style=n.getAttribute('style')||'';
-   const cm=style.match(/(?:^|;)\\s*color\\s*:\\s*([^;]+)/i),wm=style.match(/font-weight\\s*:\\s*([^;]+)/i),im=style.match(/font-style\\s*:\\s*([^;]+)/i),um=style.match(/text-decoration\\s*:\\s*([^;]+)/i);
+   const cm=style.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i),wm=style.match(/font-weight\s*:\s*([^;]+)/i),im=style.match(/font-style\s*:\s*([^;]+)/i),um=style.match(/text-decoration\s*:\s*([^;]+)/i);
    const attrColor=tag==='font'?(n.getAttribute('color')||''):'';
    const nextColor=cm?cm[1].trim():(attrColor||c);
    const nextBold=b||(tag==='strong'||tag==='b'||!!(wm&&/(bold|[6-9]00)/i.test(wm[1])));
@@ -150,10 +150,10 @@ function createEngine(root,p,logo){
    const nextUnder=u||(tag==='u'||!!(um&&/underline/i.test(um[1])));
    const nextHref=tag==='a'?(n.getAttribute('href')||href):href;
    const isBlock=['div','p','h1','h2','h3','h4','h5','h6'].includes(tag);
-   if(isBlock&&out.length&&out[out.length-1].t!=='\\n')out.push({t:'\\n',b:false,i:false,u:false,c:null,href:null});
-   if(tag==='br'){out.push({t:'\\n',b:nextBold,i:nextItalic,u:nextUnder,c:nextColor,href:nextHref});return;}
+   if(isBlock&&out.length&&out[out.length-1].t!=='\n')out.push({t:'\n',b:false,i:false,u:false,c:null,href:null});
+   if(tag==='br'){out.push({t:'\n',b:nextBold,i:nextItalic,u:nextUnder,c:nextColor,href:nextHref});return;}
    [...n.childNodes].forEach(ch=>walk(ch,nextBold,nextItalic,nextUnder,nextColor,nextHref));
-   if(isBlock&&out.length&&out[out.length-1].t!=='\\n')out.push({t:'\\n',b:false,i:false,u:false,c:null,href:null});
+   if(isBlock&&out.length&&out[out.length-1].t!=='\n')out.push({t:'\n',b:false,i:false,u:false,c:null,href:null});
   }
   walk(node,bold,italic,underline,color,null);return out;
  }
@@ -206,11 +206,11 @@ function createEngine(root,p,logo){
   });
  }
  function renderDescription(el){
-  const inner=$(el,'.pdf-description-content')||el;ensure(12,6);const x=14,w=182,start=ctx.y;
-  fill(p,'soft');p.rect(x,start,w,4.2,'F');line(p,'line');p.setLineWidth(.4);p.line(x,start,x+w,start);
-  ctx.flowFrame={x,w,fill:'soft',stroke:'line',page:ctx.page,lastY:start+4.2};ctx.y+=7;
-  richContent(inner,x+5,w-10,8.4);
-  const f=ctx.flowFrame;line(p,'line');p.setLineWidth(.4);const from=f?.lastY??ctx.y+1;p.line(x,from,x,ctx.y+1);p.line(x+w,from,x+w,ctx.y+1);p.line(x,ctx.y+1,x+w,ctx.y+1);ctx.flowFrame=null;ctx.y+=5;
+  const inner=$(el,'.pdf-description-content')||el;ensure(10,4);const x=14,w=182,start=ctx.y;
+  fill(p,'soft');p.rect(x,start,w,3.5,'F');line(p,'line');p.setLineWidth(.4);p.line(x,start,x+w,start);
+  ctx.flowFrame={x,w,fill:'soft',stroke:'line',page:ctx.page,lastY:start+3.5};ctx.y+=5.8;
+  richContent(inner,x+5,w-10,8.2);
+  const f=ctx.flowFrame;line(p,'line');p.setLineWidth(.4);const from=f?.lastY??ctx.y+1;p.line(x,from,x,ctx.y+1);p.line(x+w,from,x+w,ctx.y+1);p.line(x,ctx.y+1,x+w,ctx.y+1);ctx.flowFrame=null;ctx.y+=3.5;
  }
  function renderEconomy(el){
   const rows=[...el.querySelectorAll('tr')],x=128,w=68;
@@ -280,23 +280,23 @@ function createEngine(root,p,logo){
   cards.forEach((card,i)=>{let x=14+i*(w+4);fill(p,'soft');line(p,'line');p.roundedRect(x,ctx.y,w,h,1.2,1.2,'FD');p.setFont('helvetica','normal');p.setFontSize(5.8);setColor(p,'muted');p.text(text($(card,'span')).toUpperCase(),x+3,ctx.y+4.2);p.setFont('helvetica','bold');p.setFontSize(6.8);setColor(p,'ink');p.text(p.splitTextToSize(text($(card,'strong')),w-6).slice(0,2),x+3,ctx.y+9.2);});ctx.y+=h+3;
  }
  function renderTerms(el){
-  const items=[...el.querySelectorAll('li')];if(!items.length)return;ensure(10,4);const x=14,w=182,start=ctx.y;
-  fill(p,'soft');p.rect(x,start,w,4.2,'F');line(p,'line');p.setLineWidth(.4);p.line(x,start,x+w,start);
-  ctx.flowFrame={x,w,fill:'soft',stroke:'line',page:ctx.page,lastY:start+4.2};ctx.y+=5.5;
+  const items=[...el.querySelectorAll('li')];if(!items.length)return;ensure(9,3);const x=14,w=182,start=ctx.y;
+  fill(p,'soft');p.rect(x,start,w,3.5,'F');line(p,'line');p.setLineWidth(.4);p.line(x,start,x+w,start);
+  ctx.flowFrame={x,w,fill:'soft',stroke:'line',page:ctx.page,lastY:start+3.5};ctx.y+=4.5;
   items.forEach((li,i)=>{const runs=inlineRuns(li),lead=[{t:(i+1)+'. ',b:true,i:false,u:false},...runs];
-   const plain=runs.map(r=>r.t).join(' ');p.setFont('helvetica','normal');p.setFontSize(8);const lines=p.splitTextToSize(plain,172);ensure(Math.min(15,Math.max(8,lines.length*3.8+3)),4);
-   ctx.y=drawRichLine(lead,18,ctx.y,172,8.0);ctx.y+=2.2;
+   const plain=runs.map(r=>r.t).join(' ');p.setFont('helvetica','normal');p.setFontSize(7.7);const lines=p.splitTextToSize(plain,172);ensure(Math.min(13,Math.max(7.5,lines.length*3.35+2)),3);
+   ctx.y=drawRichLine(lead,18,ctx.y,172,7.7);ctx.y+=1.05;
   });
-  const f=ctx.flowFrame;line(p,'line');p.setLineWidth(.4);const from=f?.lastY??ctx.y+1;p.line(x,from,x,ctx.y+1);p.line(x+w,from,x+w,ctx.y+1);p.line(x,ctx.y+1,x+w,ctx.y+1);ctx.flowFrame=null;ctx.y+=5;
+  const f=ctx.flowFrame;line(p,'line');p.setLineWidth(.4);const from=f?.lastY??ctx.y+1;p.line(x,from,x,ctx.y+1);p.line(x+w,from,x+w,ctx.y+1);p.line(x,ctx.y+1,x+w,ctx.y+1);ctx.flowFrame=null;ctx.y+=2.8;
  }
  function renderSignatures(el){
-  const cards=[...el.querySelectorAll('.pdf-signature')];const x0=14,w=89,gap=4,h=31;ensure(h+3,0);
-  cards.forEach((sg,i)=>{const x=x0+i*(w+gap);fill(p,'white');line(p,'line');p.roundedRect(x,ctx.y,w,h,1.5,1.5,'FD');p.setFont('helvetica','bold');p.setFontSize(6.3);setColor(p,'muted');p.text(text($(sg,'.pdf-label')).toUpperCase(),x+3,ctx.y+5);
-   const img=$(sg,'img');if(img&&img.src.startsWith('data:image/')){try{p.addImage(img.src,'PNG',x+4,ctx.y+7,42,10.5);}catch{}}
-   else{line(p,'line');p.line(x+4,ctx.y+20.5,x+54,ctx.y+20.5);}
-   p.setFont('helvetica','bold');p.setFontSize(7.5);setColor(p,'ink');p.text(text($(sg,'strong'))||'Firma',x+3,ctx.y+25);
-   p.setFont('helvetica','normal');p.setFontSize(6);setColor(p,'muted');p.text(text($(sg,'small'))||text($(sg,'.pdf-sign-date')),x+3,ctx.y+28.5);
-  });ctx.y+=h+4;
+  const cards=[...el.querySelectorAll('.pdf-signature')];const x0=14,w=89,gap=4,h=30.5;ensure(h+2.5,0);
+  cards.forEach((sg,i)=>{const x=x0+i*(w+gap);fill(p,'white');line(p,'line');p.roundedRect(x,ctx.y,w,h,1.5,1.5,'FD');p.setFont('helvetica','bold');p.setFontSize(6.3);setColor(p,'muted');p.text(text($(sg,'.pdf-label')).toUpperCase(),x+3,ctx.y+4.5);
+   const img=$(sg,'img');if(img&&img.src.startsWith('data:image/')){try{p.addImage(img.src,'PNG',x+4,ctx.y+6.5,42,10);}catch{}}
+   else{line(p,'line');p.line(x+4,ctx.y+20,x+54,ctx.y+20);}
+   p.setFont('helvetica','bold');p.setFontSize(7.5);setColor(p,'ink');p.text(text($(sg,'strong'))||'Firma',x+3,ctx.y+24.5);
+   p.setFont('helvetica','normal');p.setFontSize(6);setColor(p,'muted');p.text(text($(sg,'small'))||text($(sg,'.pdf-sign-date')),x+3,ctx.y+28);
+  });ctx.y+=h+2.5;
  }
  function renderBlock(el){
   if(el.classList.contains('pdf-title')){band(text(el));return;}

@@ -462,7 +462,7 @@ function getPdfPageCuts(doc,safePageHeight,fullHeight,maxPageHeight=1123){
     const target=previous+safePageHeight;
     // Let the final page use the full A4 height so the final footer and
     // signature area are not stranded at the top of a tiny trailing slice.
-    if(fullHeight-target<=maxPageHeight){cuts.push(fullHeight);break;}
+    if(fullHeight-target<=safePageHeight){cuts.push(fullHeight);break;}
     let cut=target;
     const lower=previous+safePageHeight*.76;
     const candidates=lineEdges.filter(edge=>edge>=lower&&edge<=target&&target-edge<=42);
@@ -508,7 +508,7 @@ async function downloadPDF(html, filename, outputWindow=null){
     // prevent vertical stretching and keep each canvas within safe limits.
     const cssWidth=794;
     const cssPageHeight=1123;
-    const safeContentHeight=1000; // ~32 mm reserved for footer/page label and safe trim.
+    const safeContentHeight=1040; // ~22 mm reserved for page label and safe trim.
     const fullHeight=Math.ceil(doc.scrollHeight);
     const pageCuts=getPdfPageCuts(doc,safeContentHeight,fullHeight,cssPageHeight);
     const totalPages=pageCuts.length-1;

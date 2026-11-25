@@ -33,9 +33,14 @@ test('temporary canvases are released between pages and on errors', () => {
   assert.match(pdfFn, /finally\s*\{[\s\S]*?holder\.remove\(\)/);
 });
 
-test('iOS output uses a gesture-opened window and a Blob URL', () => {
+test('iOS uses a gesture-opened viewer while desktop triggers a Blob download', () => {
   assert.match(source, /function preparePdfOutputWindow\(\)/);
   assert.match(source, /window\.open\('about:blank','_blank'\)/);
+  assert.match(source, /if\(!isIOSPdfViewer\(\)\) return null/);
+  assert.match(pdfFn, /link\.download=filename/);
+  assert.match(pdfFn, /link\.click\(\)/);
+  assert.match(pdfFn, /showPdfProgress\(`Generazione PDF/);
+  assert.match(pdfFn, /renderScale=1\.25/);
   assert.match(pdfFn, /pdf\.output\('blob'\)/);
   assert.match(pdfFn, /outputWindow\.location\.replace\(blobUrl\)/);
   assert.match(source, /downloadPDF\(buildServicePDF\(\),[\s\S]*?outputWindow\)/);

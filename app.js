@@ -467,7 +467,7 @@ function addContinuationPageBreathing(doc){
   const safeTop=28;
   const safeBottom=34;
   const candidates=[
-    ...doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-description-content li, .pdf-terms-box li, .pdf-table tbody tr, .pdf-title, .pdf-acceptance')
+    ...doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content li, .pdf-terms-box li, .pdf-table tbody tr, .pdf-title, .pdf-acceptance')
   ];
 
   // Keep readable semantic blocks on one page whenever their height allows it.

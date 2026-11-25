@@ -79,14 +79,15 @@ function createEngine(root,p,logo){
   const out=[];function walk(n,b,i,u){if(n.nodeType===3){if(n.nodeValue)out.push({t:n.nodeValue,b,i,u});return;}if(n.nodeType!==1)return;
    const tag=n.tagName.toLowerCase();if(tag==='br'){out.push({t:'\n',b,i,u});return;}
    walkChildren(n,b||tag==='strong'||tag==='b',i||tag==='em'||tag==='i',u||tag==='u');
-   function walkChildren(a,bb,ii,uu){[...a.childNodes].forEach(ch=>walk(ch,bb,ii,uu));}
-  }walk(node,bold,italic,underline);return out;
+   function walkChildren(a,bb,ii,uu,cc){[...a.childNodes].forEach(ch=>walk(ch,bb,ii,uu,cc));}
+  }walk(node,bold,italic,underline,color);return out;
  }
  function drawRichLine(runs,x,y,w,size,indent=0){
   let lineRuns=[],lineWidth=0,lines=0,base=x+indent;
   const lineH=size*.48;
+  function applyInlineColor(value){if(!value){setColor(p,'ink');return;}let v=String(value).toLowerCase().trim();const named={'#0073aa':[0,115,170],'rgb(0, 115, 170)':[0,115,170],'#c62828':[198,40,40],'rgb(198, 40, 40)':[198,40,40],'#000000':[0,0,0],'black':[0,0,0]};if(named[v])p.setTextColor(...named[v]);else setColor(p,'ink');}
   function renderLine(){if(!lineRuns.length){y+=lineH;lines++;return;}let xx=base;
-   lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);setColor(p,'ink');p.text(r.t,xx,y);if(r.u){line(p,'ink');p.setLineWidth(.15);p.line(xx,y+0.6,xx+p.getTextWidth(r.t),y+0.6);}xx+=p.getTextWidth(r.t);});
+   lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);applyInlineColor(r.c);p.text(r.t,xx,y);if(r.u){applyInlineColor(r.c);p.setLineWidth(.15);p.line(xx,y+0.6,xx+p.getTextWidth(r.t),y+0.6);}xx+=p.getTextWidth(r.t);});
    y+=lineH;lines++;lineRuns=[];lineWidth=0;
   }
   runs.forEach(run=>{const chunks=run.t.replace(/\r/g,'').split(/(\s+|\n)/).filter(Boolean);chunks.forEach(word=>{if(word==='\n'){renderLine();return;}p.setFont('helvetica',run.b?(run.i?'bolditalic':'bold'):(run.i?'italic':'normal'));p.setFontSize(size);const ww=p.getTextWidth(word);if(lineWidth+ww>w-indent&&lineRuns.length){renderLine();}lineRuns.push({t:word,b:run.b,i:run.i,u:run.u});lineWidth+=ww;});});

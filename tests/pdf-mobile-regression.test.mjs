@@ -7,6 +7,10 @@ const start = source.indexOf('async function downloadPDF(');
 const end = source.indexOf("\n$('#service-form').addEventListener", start);
 assert.ok(start >= 0 && end > start, 'PDF function boundaries must exist');
 const pdfFn = source.slice(start, end);
+const pageCutFnStart = source.indexOf('function getPdfPageCuts(');
+const pageCutFnEnd = source.indexOf('\n    async function downloadPDF(', pageCutFnStart);
+assert.ok(pageCutFnStart >= 0 && pageCutFnEnd > pageCutFnStart, 'page cut function boundaries must exist');
+const pageCutFn = source.slice(pageCutFnStart, pageCutFnEnd);
 
 test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.match(pdfFn, /for\s*\(let page=0;page<totalPages;page\+\+\)/);
@@ -16,10 +20,11 @@ test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.doesNotMatch(pdfFn, /height:fullHeight/);
 });
 
-test('PDF page cuts follow nearby line ends without stretching slices', () => {
-  assert.match(source, /function getPdfPageCuts\(doc,pageHeight,fullHeight\)/);
-  assert.match(source, /range\.getClientRects\(\)/);
-  assert.match(source, /const tolerance=24/);
+test('page cuts reserve a safety band and use text line boundaries without stretching', () => {
+  assert.match(source, /function getPdfPageCuts\(doc,safePageHeight,fullHeight,maxPageHeight=1123\)/);
+  assert.match(pageCutFn, /range\.getClientRects\(\)/);
+  assert.match(pageCutFn, /target-edge<=42/);
+  assert.match(pdfFn, /safeContentHeight=1040/);
   assert.match(pdfFn, /const pageHeight=pageCuts\[page\+1\]-pageTop/);
   assert.match(pdfFn, /const imageHeightMm=pageHeight\*\(210\/cssWidth\)/);
   assert.match(pdfFn, /pdf\.addImage\(renderedCanvas,'JPEG',0,0,210,imageHeightMm/);
@@ -35,16 +40,14 @@ test('PDF canvas is passed directly to jsPDF and temporary canvases are released
   assert.match(pdfFn, /finally\s*\{[\s\S]*?holder\.remove\(\)/);
 });
 
-test('iOS uses a gesture-opened viewer while desktop triggers a Blob download', () => {
+test('PDF opens a user-triggered viewer tab and never auto-downloads', () => {
   assert.match(source, /function preparePdfOutputWindow\(\)/);
   assert.match(source, /window\.open\('about:blank','_blank'\)/);
-  assert.match(source, /if\(!isIOSPdfViewer\(\)\) return null/);
-  assert.match(pdfFn, /link\.download=filename/);
-  assert.match(pdfFn, /link\.click\(\)/);
-  assert.match(pdfFn, /showPdfProgress\(`Generazione PDF/);
-  assert.match(pdfFn, /renderScale=1\.25/);
   assert.match(pdfFn, /pdf\.output\('blob'\)/);
   assert.match(pdfFn, /outputWindow\.location\.replace\(blobUrl\)/);
+  assert.match(pdfFn, /outputWindow\?\.close\(\)/);
+  assert.doesNotMatch(pdfFn, /link\.download=filename/);
+  assert.doesNotMatch(pdfFn, /link\.click\(\)/);
   assert.match(source, /downloadPDF\(buildServicePDF\(\),[\s\S]*?outputWindow\)/);
   assert.match(source, /downloadPDF\(buildEdilePDF\(\),[\s\S]*?outputWindow\)/);
 });

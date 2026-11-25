@@ -13,7 +13,7 @@ function imageData(url){return new Promise(resolve=>{if(!url){resolve(null);retu
 function titleFrom(root){return text($(root,'.pdf-doc-type'))||'PREVENTIVO';}
 function metadata(root){const h=$(root,'.pdf-meta');return {number:text($(h,'strong')),date:text($(h,'span:last-child')).replace(/^DATA:\s*/,'')};}
 function createEngine(root,p,logo){
- const ctx={root,p,logo,title:titleFrom(root),meta:metadata(root),y:M.top,page:1};
+ const ctx={root,p,logo,title:titleFrom(root),meta:metadata(root),y:M.top,page:1};let clientCardTop=M.top;
  function header(){
   p.setPage(ctx.page);line(p,'blue');p.setLineWidth(.65);p.line(14,8,196,8);
   if(logo){try{p.addImage(logo,'PNG',14,11,24,17,'abilart-logo','FAST');}catch{}}
@@ -63,6 +63,7 @@ function createEngine(root,p,logo){
   });
  }
  function drawClient(el){
+  clientCardTop=ctx.y;
   const trs=[...el.querySelectorAll('tr')],fields=[];
   trs.forEach(tr=>[...tr.children].forEach(cell=>{fields.push({label:text($(cell,'.pdf-label')),value:text(cell).replace(text($(cell,'.pdf-label')),'').trim()||'—'});}));
   // Better 2-column cards with auto-sized rows; no labels concatenate with values.
@@ -176,8 +177,8 @@ function createEngine(root,p,logo){
    // Client data + summary panel share the same vertical start; draw client left, economy right.
    const before=blocks.slice(0,blocks.indexOf(client)+1),after=blocks.slice(blocks.indexOf(client)+1);
    before.forEach(renderBlock);
-   const clientY=ctx.y;ctx.y=clientY-2;const econH=renderEconomy(econ);
-   ctx.y=Math.max(clientY+1,clientY-2+econH)+2;
+   const clientY=ctx.y;ctx.y=clientCardTop;const econH=renderEconomy(econ);
+   ctx.y=Math.max(clientY,clientCardTop+econH)+2;
    if(pay)renderPayment(pay);
    after.forEach(renderBlock);
   }else blocks.forEach(renderBlock);

@@ -12,6 +12,7 @@ function line(p,key){p.setDrawColor(...C[key]);}
 function imageData(url){return new Promise(resolve=>{if(!url){resolve(null);return;}fetch(url).then(r=>{if(!r.ok)throw Error('Logo non raggiungibile');return r.blob();}).then(blob=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>resolve(null);fr.readAsDataURL(blob);}).catch(()=>resolve(null));});}
 function titleFrom(root){return text($(root,'.pdf-doc-type'))||'PREVENTIVO';}
 function metadata(root){const h=$(root,'.pdf-meta');return {number:text($(h,'strong')),date:text($(h,'span:last-child')).replace(/^DATA:\s*/,'')};}
+const logoPromise=imageData(new URL('assets/abilart-logo.png',document.baseURI).href);
 function createEngine(root,p,logo){
  const ctx={root,p,logo,title:titleFrom(root),meta:metadata(root),y:M.top,page:1};let clientCardTop=M.top;
  function header(){
@@ -202,7 +203,7 @@ window.AbilartPDFRenderer={async render(html,filename){
  const root=new DOMParser().parseFromString(html,'text/html').querySelector('.pdf-flow-document');
  if(!root)throw new Error('Contenuto del preventivo non trovato');
  const p=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true,putOnlyUsedFonts:true});
- const logo=await imageData(new URL('assets/abilart-logo.png',document.baseURI).href);
+ const logo=await logoPromise;
  const engine=createEngine(root,p,logo);return engine;
 }};
 })();

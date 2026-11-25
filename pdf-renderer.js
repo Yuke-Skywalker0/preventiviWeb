@@ -128,7 +128,7 @@ function createEngine(root,p,logo){
   function renderLine(){
    if(y+lineH+2>M.bottom){newPage();y=ctx.y;base=x+indent;}
    if(ctx.flowFrame){const f=ctx.flowFrame,top=y-3.2,bottom=y+2.1,from=Math.min(f.lastY??top,top);fill(p,f.fill||'soft');p.rect(f.x,from,f.w,bottom-from,'F');line(p,f.stroke||'line');p.setLineWidth(.35);p.line(f.x,from,f.x,bottom);p.line(f.x+f.w,from,f.x+f.w,bottom);f.lastY=bottom;f.page=ctx.page;}
-   if(!lineRuns.length{y+=lineH;lines++;return;}let xx=base;
+   if(!lineRuns.length){y+=lineH;lines++;return;}let xx=base;
    lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);applyColor(r.c);p.text(r.t,xx,y);if(r.href)addPdfLink(p,xx,y-size*.42,p.getTextWidth(r.t),lineH+1,r.href);if(r.u||r.href){applyColor(r.c);p.setLineWidth(.15);p.line(xx,y+.6,xx+p.getTextWidth(r.t),y+.6);}xx+=p.getTextWidth(r.t);});
    y+=lineH;lines++;lineRuns=[];lineWidth=0;
   }

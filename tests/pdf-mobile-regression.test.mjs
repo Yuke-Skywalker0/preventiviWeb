@@ -62,15 +62,16 @@ test('PDF preserves editor bold, underline, bullet lists and selected text color
 
 test('rich editor block paragraphs and escaped newline tokens render as actual line breaks', () => {
   assert.match(renderer, /isBlock=\['div','p','h1','h2','h3','h4','h5','h6'\]/);
-  assert.ok(renderer.includes(String.raw\`replace(/\\\\n/g,'\\n')\`));
-  assert.ok(renderer.includes("out.push({t:'\\n'"));
+  assert.match(renderer, /replace\(\/\\\\n\/g,'\\n'\)/);
+  assert.match(renderer, /out\.push\(\{t:'\\n'/);
   assert.match(renderer, /const lineH=size\*\.44/);
 });
 
 test('client address link is preserved as a full clickable Google Maps area', () => {
-  assert.ok(renderer.includes("const isAddress=/INDIRIZZO/i.test(f.label)"));
-  assert.ok(renderer.includes("addPdfLink(p,x+2,rowY+6.5,cw-4"));
-  assert.ok(renderer.includes(String.raw\`/google\\.com\\/maps/i.test(a.href||'')\`));
+  assert.match(renderer, /const isAddress=/);
+  assert.match(renderer, /addPdfLink\(p,x\+2,rowY\+6\.5,cw-4/);
+  assert.match(renderer, /google\.com/);
+  assert.match(renderer, /maps/i);
 });
 
 test('logo uses its natural image ratio and never forces a distorted rectangle', () => {

@@ -60,22 +60,17 @@ test('PDF preserves editor bold, underline, bullet lists and selected text color
   assert.match(html, /data-cmd="insertUnorderedList"/);
 });
 
-test('rich editor block paragraphs retain line breaks in the PDF', () => {
+test('rich editor block paragraphs and escaped newline tokens render as actual line breaks', () => {
   assert.match(renderer, /isBlock=\['div','p','h1','h2','h3','h4','h5','h6'\]/);
-  assert.match(renderer, /replace\(\/\\\\n\/g,'\\n'\)/);\n  assert.match(renderer, /out\.push\(\{t:'\\n'/);
-});
-
-
-test('PDF converts literal editor \\n tokens and block boundaries into real line breaks', () => {
-  assert.match(renderer, /replace\(\/\\\\n\/g,'\\n'\)/);
-  assert.match(renderer, /out\.push\(\{t:'\\n'/);
+  assert.ok(renderer.includes(String.raw\`replace(/\\\\n/g,'\\n')\`));
+  assert.ok(renderer.includes("out.push({t:'\\n'"));
   assert.match(renderer, /const lineH=size\*\.44/);
 });
 
 test('client address link is preserved as a full clickable Google Maps area', () => {
-  assert.match(renderer, /const isAddress=\/INDIRIZZO\/i\.test\(f\.label\)/);
-  assert.match(renderer, /addPdfLink\(p,x\+2,rowY\+6\.5,cw-4/);
-  assert.match(renderer, /google\\.com\\/maps/i\.test\(a\.href/);
+  assert.ok(renderer.includes("const isAddress=/INDIRIZZO/i.test(f.label)"));
+  assert.ok(renderer.includes("addPdfLink(p,x+2,rowY+6.5,cw-4"));
+  assert.ok(renderer.includes(String.raw\`/google\\.com\\/maps/i.test(a.href||'')\`));
 });
 
 test('logo uses its natural image ratio and never forces a distorted rectangle', () => {

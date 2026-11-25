@@ -198,12 +198,70 @@ function createEngine(root,p,logo){
   if(lineRuns.length)renderLine();return y;
  }
  function richContent(el,x,w,size=8.4){
-  const blocks=[...el.children];if(!blocks.length){ctx.y=drawRichLine(inlineRuns(el),x,ctx.y,w,size);return;}
-  blocks.forEach(block=>{
-   const tag=block.tagName.toLowerCase();
-   if(tag==='ul'||tag==='ol'){[...block.children].forEach((li,index)=>{const runs=inlineRuns(li);ensure(size*1.2,4);const bulletX=x+3;if(tag==='ul'){fill(p,'blue');p.circle(bulletX,ctx.y-1.2,.65,'F');}else{p.setFont('helvetica','bold');p.setFontSize(size-1);setColor(p,'blue');p.text((index+1)+'.',bulletX,ctx.y);}ctx.y=drawRichLine(runs,x+7,ctx.y,w-7,size);ctx.y+=1.4;});}
-   else{const runs=inlineRuns(block);ensure(size*1.3,4);ctx.y=drawRichLine(runs,x,ctx.y,w,size);ctx.y+=2.2;}
-  });
+  const structural=new Set(['div','p','h1','h2','h3','h4','h5','h6','ul','ol']);
+  function hasNestedStructure(node){
+   return [...node.children].some(child=>structural.has(child.tagName.toLowerCase()));
+  }
+  function drawInline(node,indent=0,spacing=1.8){
+   const runs=inlineRuns(node);
+   ensure(size*1.3,4);
+   ctx.y=drawRichLine(runs,x+indent,ctx.y,w-indent,size);
+   ctx.y+=spacing;
+  }
+  function renderList(list,depth=0){
+   const tag=list.tagName.toLowerCase(),items=[...list.children].filter(n=>n.tagName.toLowerCase()==='li');
+   items.forEach((li,index)=>{
+    ensure(size*1.2,4);
+    const nested=[...li.querySelectorAll('ul,ol')];
+    const content=li.cloneNode(true);
+    content.querySelectorAll('ul,ol').forEach(n=>n.remove());
+    const runs=inlineRuns(content);
+    const indent=depth*5.5,bulletX=x+3+indent;
+    if(tag==='ul'){fill(p,'blue');p.circle(bulletX,ctx.y-1.2,.65,'F');}
+    else{p.setFont('helvetica','bold');p.setFontSize(size-1);setColor(p,'blue');p.text(String(index+1)+'.',bulletX,ctx.y);}
+    ctx.y=drawRichLine(runs,x+7+indent,ctx.y,w-7-indent,size);
+    ctx.y+=1.1;
+    nested.forEach(sub=>renderList(sub,depth+1));
+   });
+   ctx.y+=.5;
+  }
+  function renderNode(node){
+   if(node.nodeType===3){
+    const value=node.nodeValue||'';
+    if(value.trim())drawInline(node);
+    else if(value.includes('\n'))ctx.y+=size*.44;
+    return;
+   }
+   if(node.nodeType!==1)return;
+   const tag=node.tagName.toLowerCase();
+   if(tag==='ul'||tag==='ol'){renderList(node);return;}
+   if(tag==='br'){ctx.y+=size*.44;return;}
+   if(structural.has(tag)&&hasNestedStructure(node)){
+    renderChildren(node);
+    return;
+   }
+   drawInline(node,0,['h1','h2','h3','h4','h5','h6'].includes(tag)?2.4:1.8);
+  }
+  function renderChildren(parent){
+   let inline=[];
+   function flush(){
+    if(!inline.length)return;
+    const wrapper=document.createElement('span');
+    inline.forEach(n=>wrapper.appendChild(n.cloneNode(true)));
+    drawInline(wrapper,0,1.8);
+    inline=[];
+   }
+   [...parent.childNodes].forEach(node=>{
+    if(node.nodeType===1&&structural.has(node.tagName.toLowerCase())){
+     flush();renderNode(node);
+    }else if(node.nodeType===1&&node.tagName.toLowerCase()==='br'){
+     flush();renderNode(node);
+    }else inline.push(node);
+   });
+   flush();
+  }
+  if(!el.childNodes.length){drawInline(el,0,1.8);return;}
+  renderChildren(el);
  }
  function renderDescription(el){
   const inner=$(el,'.pdf-description-content')||el;ensure(10,4);const x=14,w=182,start=ctx.y;

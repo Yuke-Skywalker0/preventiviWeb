@@ -82,7 +82,7 @@ test('quote issue date is distinct from planned intervention date and validity i
 
 test('commercial validation is wired to both forms and prevents inconsistent totals', () => {
   assert.match(source, /function quoteBusinessCheck\(form\)/);
-  assert.match(source, /Il subtotale lavorazioni/);
+  assert.match(source, /subtotale lavorazioni/i);
   assert.match(source, /L’acconto non può superare il totale/);
   assert.equal((source.match(/quoteBusinessCheck\(e\.currentTarget\)/g) || []).length, 2);
   assert.match(source, /pattern=\/\^-\?\(\?:\\d\+/);
@@ -91,7 +91,7 @@ test('commercial validation is wired to both forms and prevents inconsistent tot
 test('contract wording does not mislabel an image signature as a digital signature', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(html, /foro previsto dalla normativa a sua tutela/);
-  assert.match(html, /opere aggiuntive non sono comprese/);
+  assert.match(html, /lavorazioni non previste non sono comprese/);
   assert.match(html, /informativa privacy completa è resa separatamente/);
   assert.doesNotMatch(source, /Documento firmato digitalmente/);
   assert.doesNotMatch(source, /approvato specificamente le clausole contenute nel presente documento/);

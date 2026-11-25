@@ -768,3 +768,13 @@ body.pdf-rendering{overflow:hidden!important}
 .pdf-flow-body .pdf-description-content ul,
 .pdf-flow-body .pdf-description-content ol{list-style-position:outside}
 .pdf-flow-body .pdf-description-content li{overflow-wrap:anywhere}
+
+.field-hint{display:block;margin-top:6px;color:#71808a;font-size:11px;line-height:1.4}
+.pdf-flow-body .pdf-data td{vertical-align:top}
+.pdf-flow-body .pdf-payment{align-items:stretch;gap:9px}
+.pdf-flow-body .pdf-payment>div{min-width:0;overflow-wrap:anywhere}
+.pdf-flow-body .pdf-payment strong{display:block;line-height:1.45}
+.pdf-flow-body .pdf-terms-box{font-size:9.1px!important;line-height:1.58!important;text-align:left!important}
+.pdf-flow-body .pdf-terms-box li,.pdf-flow-body .pdf-acceptance{break-inside:avoid-page;page-break-inside:avoid}
+.pdf-document-footer{overflow-wrap:anywhere;white-space:normal!important}
+@media(max-width:760px){.field-hint{font-size:12px}}

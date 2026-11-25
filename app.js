@@ -467,6 +467,15 @@ function getPdfPageCuts(doc,safePageHeight,fullHeight,maxPageHeight=1123){
     const top=a.top-rootTop, bottom=b.bottom-rootTop;
     if(bottom-top<Math.min(330,safePageHeight*.42)) protectedRanges.push({top,bottom});
   });
+  // Keep section headings with the first paragraph/list row even when the
+  // full terms or description box spans several pages.
+  doc.querySelectorAll('.pdf-title').forEach(title=>{
+    const next=title.nextElementSibling;
+    if(!next||!next.matches('.pdf-terms-box,.pdf-description-flow'))return;
+    const first=next.querySelector('li,p')||next;
+    const heading=title.getBoundingClientRect(),content=first.getBoundingClientRect();
+    protectedRanges.push({top:heading.top-rootTop,bottom:content.bottom-rootTop});
+  });
   doc.querySelectorAll('.pdf-client-box,.pdf-economy,.pdf-payment,.pdf-acceptance,.pdf-signatures,.pdf-table tbody tr').forEach(el=>{
     const r=el.getBoundingClientRect(), top=r.top-rootTop, bottom=r.bottom-rootTop;
     if(bottom-top<safePageHeight*.72) protectedRanges.push({top,bottom});
@@ -483,8 +492,9 @@ function getPdfPageCuts(doc,safePageHeight,fullHeight,maxPageHeight=1123){
     const candidates=lineEdges.filter(edge=>edge>=lower&&edge<=target&&target-edge<=42);
     if(candidates.length) cut=candidates[candidates.length-1];
     const conflict=protectedRanges.find(r=>cut>r.top&&cut<r.bottom);
-    if(conflict&&conflict.top>previous+safePageHeight*.62) cut=conflict.top;
-    if(cut<=previous+safePageHeight*.55) cut=target;
+    if(conflict&&conflict.top>previous+240) cut=conflict.top;
+    else if(conflict&&conflict.bottom<=target) cut=conflict.bottom;
+    if(cut<=previous+220&&!conflict) cut=target;
     cuts.push(Math.max(previous+1,Math.min(target,cut)));
   }
   return cuts;

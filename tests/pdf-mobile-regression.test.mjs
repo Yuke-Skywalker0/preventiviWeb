@@ -22,8 +22,8 @@ test('PDF downloads directly after compilation without an intermediate viewer ta
   assert.doesNotMatch(source, /preparePdfOutputWindow/);
   assert.doesNotMatch(source, /window\.open\('about:blank'/);
   assert.doesNotMatch(pdfFn, /pdf\.output\('blob'\)/);
-  assert.match(source, /downloadPDF\\(buildServicePDF\\(\\),`Preventivo_Abilart_/);
-  assert.match(source, /downloadPDF\\(buildEdilePDF\\(\\),`Preventivo_Edile_Abilart_/);
+  assert.ok(source.includes("downloadPDF(buildServicePDF(),`Preventivo_Abilart_"));
+  assert.ok(source.includes("downloadPDF(buildEdilePDF(),`Preventivo_Edile_Abilart_"));
 });
 
 test('native renderer paginates content, tables and page footer safely', () => {

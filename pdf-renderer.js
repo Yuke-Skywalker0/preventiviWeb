@@ -41,8 +41,9 @@ function createEngine(root,p,logo){
    p.setFont('helvetica','normal');p.setFontSize(6.7);setColor(p,'muted');
    p.text('T. +39 320 429 5445',14,283);addPdfLink(p,14,279.5,39,5,'tel:+393204295445');
    p.text('abilart.impresaedile@gmail.com',53,283);addPdfLink(p,53,279.5,51,5,'mailto:abilart.impresaedile@gmail.com');
-   p.text('www.idraulicoservizi.it',107,283);addPdfLink(p,107,279.5,39,5,'https://idraulicoservizi.it/');
-   p.text('Mappa',148,283);addPdfLink(p,146,279.5,17,5,'https://www.google.com/maps/search/?api=1&query=Via%20Caprera%202%2C%2020851%20Lissone%20MB%2C%20Italia');
+   p.text('impresaedileabilart.com',101,283);addPdfLink(p,101,279.5,34,5,'https://impresaedileabilart.com/');
+   p.text('idraulicoservizi.it',137,283);addPdfLink(p,137,279.5,30,5,'https://idraulicoservizi.it/');
+   p.text('Mappa',170,283);addPdfLink(p,168,279.5,17,5,'https://www.google.com/maps/search/?api=1&query=Via%20Caprera%202%2C%2020851%20Lissone%20MB%2C%20Italia');
    p.text('Pagina '+i+' / '+n,196,283,{align:'right'});
   }
  }
@@ -55,9 +56,9 @@ function createEngine(root,p,logo){
   p.setFont('helvetica','bold');p.setFontSize(8.2);setColor(p,'navy');p.text(label.toUpperCase(),18,ctx.y+6.1);ctx.y+=12;
  }
  function labelValue(label,value,x,y,w){
-  p.setFont('helvetica','normal');p.setFontSize(6.5);setColor(p,'muted');p.text(label.toUpperCase(),x+3,y+4);
-  p.setFont('helvetica','bold');p.setFontSize(8.4);setColor(p,'ink');
-  const lines=p.splitTextToSize(value||'—',w-6);p.text(lines,x+3,y+9.2,{lineHeightFactor:1.2});
+  p.setFont('helvetica','normal');p.setFontSize(7.0);setColor(p,'muted');p.text(label.toUpperCase(),x+3,y+4);
+  p.setFont('helvetica','bold');p.setFontSize(9.3);setColor(p,'ink');
+  const lines=p.splitTextToSize(value||'—',w-6);p.text(lines,x+3,y+10.0,{lineHeightFactor:1.2});
   return Math.max(15,lines.length*3.8+11);
  }
  function clientCard(el,x,y,w,h){
@@ -79,13 +80,13 @@ function createEngine(root,p,logo){
   const fields=[];
   [...el.querySelectorAll('tr')].forEach(tr=>[...tr.children].forEach(cell=>{
    const label=text($(cell,'.pdf-label'));
-   const value=text(cell).replace(label,'').trim()||'—';fields.push({label,value,anchors:[...cell.querySelectorAll('a')].map(a=>({text:text(a),href:a.getAttribute('href')}))});
+   let value=text(cell).replace(label,'').trim()||'—';const anchors=[...cell.querySelectorAll('a')].map(a=>({text:text(a),href:a.getAttribute('href')}));if(label.toUpperCase()==='CONTATTI'&&anchors.length>1)value=anchors.map(a=>a.text).join('\n');fields.push({label,value,anchors:[...cell.querySelectorAll('a')].map(a=>({text:text(a),href:a.getAttribute('href')}))});
   }));
-  const w=112,cw=w/2,rows=[];
+  const w=116,cw=w/2,rows=[];
   fields.forEach((f,i)=>{
    p.setFont('helvetica','bold');p.setFontSize(8.2);
    const lines=p.splitTextToSize(f.value,cw-6);
-   const row=Math.floor(i/2);rows[row]=Math.max(rows[row]||17,Math.max(17,lines.length*4.1+11));
+   const row=Math.floor(i/2);rows[row]=Math.max(rows[row]||19.5,Math.max(19.5,lines.length*4.35+12));
   });
   const h=rows.reduce((a,b)=>a+b,0);
   ensure(h+3,6);const y0=ctx.y;line(p,'line');fill(p,'white');p.roundedRect(14,y0,w,h,1.5,1.5,'FD');
@@ -127,7 +128,7 @@ function createEngine(root,p,logo){
   }
   function renderLine(){
    if(y+lineH+2>M.bottom){newPage();y=ctx.y;base=x+indent;}
-   if(ctx.flowFrame){const f=ctx.flowFrame,top=y-3.2,bottom=y+2.1,from=Math.max(f.lastY??top,top);fill(p,f.fill||'soft');p.rect(f.x,from,f.w,bottom-from,'F');line(p,f.stroke||'line');p.setLineWidth(.35);p.line(f.x,from,f.x,bottom);p.line(f.x+f.w,from,f.x+f.w,bottom);f.lastY=bottom;f.page=ctx.page;}
+   if(ctx.flowFrame){const f=ctx.flowFrame,top=y-3.2,bottom=y+2.1,from=f.lastY??top;fill(p,f.fill||'soft');p.rect(f.x,from,f.w,bottom-from,'F');line(p,f.stroke||'line');p.setLineWidth(.35);p.line(f.x,from,f.x,bottom);p.line(f.x+f.w,from,f.x+f.w,bottom);f.lastY=bottom;f.page=ctx.page;}
    if(!lineRuns.length){y+=lineH;lines++;return;}let xx=base;
    lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);applyColor(r.c);p.text(r.t,xx,y);if(r.href)addPdfLink(p,xx,y-size*.42,p.getTextWidth(r.t),lineH+1,r.href);if(r.u||r.href){applyColor(r.c);p.setLineWidth(.15);p.line(xx,y+.6,xx+p.getTextWidth(r.t),y+.6);}xx+=p.getTextWidth(r.t);});
    y+=lineH;lines++;lineRuns=[];lineWidth=0;
@@ -169,16 +170,17 @@ function createEngine(root,p,logo){
  }
  function renderEconomy(el){
   const rows=[...el.querySelectorAll('tr')],x=130,w=66;
-  const estimate=rows.reduce((sum,tr)=>sum+(tr.classList.contains('pdf-total')?11:7.2),8);
+  const estimate=rows.reduce((sum,tr)=>sum+(tr.classList.contains('pdf-total')?13:8.5),8);
   ensure(estimate+3,6);
   const start=ctx.y;line(p,'blue');fill(p,'white');p.roundedRect(x,start,w,estimate,1.5,1.5,'FD');
-  let yy=start+6;
+  let yy=start+7.2;
   rows.forEach(tr=>{const cells=[...tr.children],isTotal=tr.classList.contains('pdf-total'),isBalance=tr.classList.contains('pdf-balance');
-   if(isTotal){fill(p,'blue');p.roundedRect(x,yy-4,w,11,1.2,1.2,'F');}
-   p.setFont('helvetica',isTotal||isBalance?'bold':'normal');p.setFontSize(isTotal?8.6:7.1);setColor(p,isTotal?'white':'ink');
-   p.text(p.splitTextToSize(text(cells[0]),w*.55-4),x+3,yy);
-   p.text(p.splitTextToSize(text(cells[1]),w*.42-4),x+w-3,yy,{align:'right'});
-   yy+=isTotal?11:7.2;
+   if(isTotal){fill(p,'blue');p.roundedRect(x,yy-5,w,13,1.2,1.2,'F');}
+   p.setFont('helvetica',isTotal||isBalance?'bold':'normal');p.setFontSize(isTotal?10.1:(isBalance?8.1:7.8));setColor(p,isTotal?'white':'ink');
+   const label=text(cells[0]),raw=text(cells[1]);
+   if(/^IVA$/i.test(label)){const rate=(raw.match(/[0-9]+(?:[,.][0-9]+)?%/)||[])[0]||'';const amount=raw.replace(rate,'').trim();p.text(label,x+3,yy);if(rate){p.setFont('helvetica','bold');p.setFontSize(7.8);setColor(p,'blue');p.text(rate,x+20,yy);}setColor(p,'ink');p.text(p.splitTextToSize(amount,w*.42-4),x+w-3,yy,{align:'right'});}
+   else{p.text(p.splitTextToSize(label,w*.55-4),x+3,yy);p.text(p.splitTextToSize(raw,w*.42-4),x+w-3,yy,{align:'right'});}
+   yy+=isTotal?13:8.5;
   });
   const actual=yy-start+2;return actual;
  }

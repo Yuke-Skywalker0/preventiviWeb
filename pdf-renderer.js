@@ -109,22 +109,32 @@ function createEngine(root,p,logo){
    if(n.nodeType===3){if(n.nodeValue)out.push({t:n.nodeValue,b,i,u,c,href});return;}
    if(n.nodeType!==1)return;
    const tag=n.tagName.toLowerCase(),style=n.getAttribute('style')||'';
-   const cm=style.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i),wm=style.match(/font-weight\s*:\s*([^;]+)/i),um=style.match(/text-decoration\s*:\s*([^;]+)/i);
-   const nextColor=cm?cm[1].trim():c;
+   const cm=style.match(/(?:^|;)\\s*color\\s*:\\s*([^;]+)/i),wm=style.match(/font-weight\\s*:\\s*([^;]+)/i),im=style.match(/font-style\\s*:\\s*([^;]+)/i),um=style.match(/text-decoration\\s*:\\s*([^;]+)/i);
+   const attrColor=tag==='font'?(n.getAttribute('color')||''): '';
+   const nextColor=cm?cm[1].trim():(attrColor||c);
    const nextBold=b||(tag==='strong'||tag==='b'||!!(wm&&/(bold|[6-9]00)/i.test(wm[1])));
+   const nextItalic=i||(tag==='em'||tag==='i'||!!(im&&/italic|oblique/i.test(im[1])));
    const nextUnder=u||(tag==='u'||!!(um&&/underline/i.test(um[1])));
    const nextHref=tag==='a'?(n.getAttribute('href')||href):href;
-   if(tag==='br'){out.push({t:'\n',b:nextBold,i,u:nextUnder,c:nextColor,href:nextHref});return;}
-   [...n.childNodes].forEach(ch=>walk(ch,nextBold,i||(tag==='em'||tag==='i'),nextUnder,nextColor,nextHref));
+   const isBlock=['div','p','h1','h2','h3','h4','h5','h6'].includes(tag);
+   if(isBlock&&out.length&&out[out.length-1].t!=='\\n')out.push({t:'\\n',b:false,i:false,u:false,c:null,href:null});   if(tag==='br'){out.push({t:'\n',b:nextBold,i,u:nextUnder,c:nextColor,href:nextHref});return;}
+   [...n.childNodes].forEach(ch=>walk(ch,nextBold,nextItalic,nextUnder,nextColor,nextHref));
+   if(isBlock&&out.length&&out[out.length-1].t!=='\\n')out.push({t:'\\n',b:false,i:false,u:false,c:null,href:null});
   }
   walk(node,bold,italic,underline,color,null);return out;
  }
  function drawRichLine(runs,x,y,w,size,indent=0){
   let lineRuns=[],lineWidth=0,lines=0,base=x+indent;const lineH=size*.48;
   function applyColor(value){
-   const v=String(value||'').toLowerCase().replace(/\s+/g,' ').trim();
-   const colors={'#0073aa':[0,115,170],'rgb(0, 115, 170)':[0,115,170],'#c62828':[198,40,40],'rgb(198, 40, 40)':[198,40,40],'#000000':[0,0,0],'black':[0,0,0]};
-   if(colors[v])p.setTextColor(...colors[v]);else setColor(p,'ink');
+   const v=String(value||'').toLowerCase().replace(/\\s+/g,' ').trim();
+   let rgb=null;
+   const hex=v.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+   if(hex){let h=hex[1];if(h.length===3)h=h.split('').map(ch=>ch+ch).join('');rgb=[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+   const fn=v.match(/^rgba?\\(\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})/i);
+   if(fn)rgb=[Number(fn[1]),Number(fn[2]),Number(fn[3])].map(n=>Math.max(0,Math.min(255,n)));
+   const named={'black':[0,0,0],'red':[198,40,40],'blue':[0,115,170],'navy':[7,79,112],'white':[255,255,255]};
+   if(!rgb)rgb=named[v]||null;
+   if(rgb)p.setTextColor(...rgb);else setColor(p,'ink');
   }
   function renderLine(){
    if(y+lineH+2>M.bottom){newPage();y=ctx.y;base=x+indent;}

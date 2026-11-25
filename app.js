@@ -427,11 +427,43 @@ function showPdfProgress(message){
 }
 
 function getPdfPageCuts(doc,pageHeight,fullHeight){
-  // Exact A4 CSS page boundaries preserve the page aspect ratio.
-  // Avoid the previous per-text Range scan: variable-height slices were
-  // stretched to a full A4 image, visibly deforming content.
-  const pageCount=Math.max(1,Math.ceil(fullHeight/pageHeight));
-  return Array.from({length:pageCount+1},(_,index)=>Math.min(index*pageHeight,fullHeight));
+  // Find nearby text-line endings once. A cut is moved only upward to a
+  // nearby line edge, never to the next paragraph or a distant block.
+  // The slice keeps its natural ratio: unused bottom space is white, not
+  // compensated by stretching or compressing the document.
+  const rootTop=doc.getBoundingClientRect().top;
+  const lineEdges=[];
+  const walker=document.createTreeWalker(doc,NodeFilter.SHOW_TEXT,{
+    acceptNode(node){return node.nodeValue?.trim()?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}
+  });
+  let node;
+  while((node=walker.nextNode())){
+    const range=document.createRange();
+    range.selectNodeContents(node);
+    for(const rect of range.getClientRects()){
+      const edge=rect.bottom-rootTop;
+      if(edge>0&&edge<fullHeight) lineEdges.push(edge);
+    }
+    range.detach?.();
+  }
+  lineEdges.sort((a,b)=>a-b);
+  const cuts=[0];
+  const tolerance=24;
+  while(cuts[cuts.length-1]<fullHeight){
+    const previous=cuts[cuts.length-1];
+    const target=previous+pageHeight;
+    if(target>=fullHeight){cuts.push(fullHeight);break;}
+    let cut=target;
+    for(let i=lineEdges.length-1;i>=0;i--){
+      const edge=lineEdges[i];
+      if(edge>target) continue;
+      if(edge<=previous+pageHeight*.82) break;
+      if(target-edge<=tolerance){cut=edge;break;}
+      if(target-edge>tolerance) break;
+    }
+    cuts.push(Math.max(previous+1,cut));
+  }
+  return cuts;
 }
 async function downloadPDF(html, filename, outputWindow=null){
   if(typeof html2canvas==='undefined' || typeof window.jspdf==='undefined' || typeof window.jspdf.jsPDF==='undefined'){
@@ -482,7 +514,7 @@ async function downloadPDF(html, filename, outputWindow=null){
       showPdfProgress(`Generazione PDF · pagina ${page+1} di ${totalPages}`);
       await sleepFrame();
       const pageTop=pageCuts[page];
-      const pageHeight=cssPageHeight;
+      const pageHeight=pageCuts[page+1]-pageTop;
 
       renderedCanvas=await html2canvas(doc,{
         x:0,y:pageTop,width:cssWidth,height:pageHeight,
@@ -494,7 +526,8 @@ async function downloadPDF(html, filename, outputWindow=null){
       if(!renderedCanvas.width||!renderedCanvas.height) throw new Error(`Canvas PDF vuoto alla pagina ${page+1}`);
 
       if(page>0) pdf.addPage('a4','portrait');
-      pdf.addImage(renderedCanvas,'JPEG',0,0,210,297,undefined,'FAST');
+      const imageHeightMm=pageHeight*(210/cssWidth);
+      pdf.addImage(renderedCanvas,'JPEG',0,0,210,imageHeightMm,undefined,'FAST');
       addPdfWatermark(pdf,page,totalPages,title);
 
       // Release the large backing store before allocating the next page.
@@ -511,11 +544,11 @@ async function downloadPDF(html, filename, outputWindow=null){
       const top=r.top-docRect.top, bottom=r.bottom-docRect.top;
       for(let page=0;page<totalPages;page++){
         const pageTop=pageCuts[page];
-        const pageBottom=Math.min(pageTop+cssPageHeight,fullHeight);
+        const pageBottom=pageCuts[page+1];
         const visibleTop=Math.max(top,pageTop);
         const visibleBottom=Math.min(bottom,pageBottom);
         if(visibleBottom<=visibleTop) continue;
-        const mmY=297/cssPageHeight;
+        const mmY=210/cssWidth;
         const x=(r.left-docRect.left)*mmX;
         const y=(visibleTop-pageTop)*mmY;
         const w=Math.max(2,r.width*mmX);

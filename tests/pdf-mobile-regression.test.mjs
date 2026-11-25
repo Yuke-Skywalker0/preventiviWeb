@@ -62,7 +62,7 @@ test('PDF preserves editor bold, underline, bullet lists and selected text color
 
 test('rich editor nested wrappers and lists are traversed instead of flattened', () => {
   assert.match(renderer, /function renderList\(list,depth=0\)/);
-  assert.match(renderer, /const nested=\[\.\.\.li\.querySelectorAll\('ul,ol'\)\]/);
+  assert.match(renderer, /const nested=\[\.\.\.li\.querySelectorAll\('ul,ol'\)\]\.filter\(sub=>sub\.closest\('li'\)===li\)/);
   assert.match(renderer, /content\.querySelectorAll\('ul,ol'\)\.forEach\(n=>n\.remove\(\)\)/);
   assert.match(renderer, /function renderChildren\(parent\)/);
   assert.match(renderer, /flush\(\);renderNode\(node\)/);

@@ -48,6 +48,23 @@ test('rich text preserves bold, italic, underline and ordered/unordered lists', 
   assert.match(renderer, /p\.circle\(/);
 });
 
+test('PDF preserves editor bold, underline, bullet lists and selected text colors', () => {
+  assert.match(renderer, /tag==='strong'\|\|tag==='b'/);
+  assert.match(renderer, /tag==='u'\|\|/);
+  assert.match(renderer, /tag==='font'\?\(n\.getAttribute\('color'\)/);
+  assert.match(renderer, /font-weight\\s\*:/);
+  assert.match(renderer, /font-style\\s\*:/);
+  assert.match(renderer, /const hex=v\.match\(\/\^#\(\[0-9a-f\]\{3\}\|\[0-9a-f\]\{6\}\)\$\/i\)/);
+  assert.match(renderer, /const fn=v\.match\(\/\^rgba\?\\\(/);
+  assert.match(renderer, /text-decoration\\s\*:/);
+  assert.match(renderer, /insertUnorderedList/);
+});
+
+test('rich editor block paragraphs retain line breaks in the PDF', () => {
+  assert.match(renderer, /isBlock=\['div','p','h1','h2','h3','h4','h5','h6'\]/);
+  assert.match(renderer, /out\.push\(\{t:'\\\\n'/);
+});
+
 test('native renderer paginates content and uses A4 dimensions', () => {
   assert.match(renderer, /format:'a4'/);
   assert.match(renderer, /function ensure\(h,keep=0\)/);

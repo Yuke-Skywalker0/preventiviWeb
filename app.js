@@ -29,6 +29,9 @@ function dateIT(value) {
   const [y,m,d] = value.split('-');
   return y && m && d ? `${d}/${m}/${y}` : value;
 }
+function localISODate(date=new Date()){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return `${y}-${m}-${d}`;}
+function addDaysISO(value,days){if(!value||!Number.isInteger(days)||days<1)return '';const [y,m,d]=value.split('-').map(Number),date=new Date(y,m-1,d);date.setDate(date.getDate()+days);return localISODate(date);}
+function validityText(value,issueDate){const days=Number(value);if(!Number.isInteger(days)||days<1||days>365)return 'Validità non impostata';const expiry=addDaysISO(issueDate,days);return `${days} giorni dalla data di emissione`+(expiry?` (scadenza ${dateIT(expiry)})`:'');}
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -41,12 +44,24 @@ function cleanEditorHtml(editor) {
     [...el.attributes].forEach(a => {
       const name=a.name.toLowerCase();
       const value=String(a.value||'').trim();
-      if(name.startsWith('on') || name==='contenteditable' || name==='srcdoc') {
+      if(name.startsWith('on') || name==='contenteditable' || name==='srcdoc' || name==='class') {
         el.removeAttribute(a.name);
         return;
       }
       if(name==='href') {
         if(!/^(https?:|mailto:|tel:)/i.test(value)) el.removeAttribute(a.name);
+      }
+      if(name==='style'){
+        const safe=[];
+        for(const declaration of value.split(';')){
+          const [property,...parts]=declaration.split(':');
+          const prop=property?.trim().toLowerCase(), val=parts.join(':').trim();
+          if(['color','font-weight','font-style','text-decoration','text-align'].includes(prop)&&
+             !/(url\s*\(|expression\s*\(|javascript:|position:|display:|\bimportant\b)/i.test(val)){
+            safe.push(prop+':'+val);
+          }
+        }
+        if(safe.length)el.setAttribute('style',safe.join(';'));else el.removeAttribute('style');
       }
       if(name==='src') {
         if(!/^data:image\/(png|jpeg|jpg|gif|webp);/i.test(value) && !/^https?:/i.test(value)) el.removeAttribute(a.name);
@@ -204,6 +219,7 @@ function pdfPageHeader(title, number, date){
         <span>P. IVA / C.F. 10439280966</span>
         <span><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Via Caprera 2, 20851 Lissone MB, Italia')}" data-pdf-link="company-address">Via Caprera 2, 20851 Lissone (MB)</a></span>
         <span>Zone operative: Monza, Milano, Bergamo e relative province</span>
+        <span><a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a> · <a href="https://idraulicoservizi.it/" data-pdf-link="site2">idraulicoservizi.it</a></span>
         <span><a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a> &nbsp;·&nbsp; <a href="https://wa.me/393204295445" data-pdf-link="whatsapp">WhatsApp</a> &nbsp;·&nbsp; <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a></span>
       </div>
     </div>
@@ -247,9 +263,8 @@ function pdfEconomy(base,discount,dep,ivaP){
   return `<div class="pdf-economy">
     <table class="pdf-money">
       <tr><td>Imponibile</td><td>${euro(base)}</td></tr>
-      ${discount>0?`<tr><td>Sconto</td><td>− ${euro(discount)}</td></tr>`:''}
-      <tr><td>Imponibile netto</td><td>${euro(net)}</td></tr>
-      <tr><td>Imposta sul valore aggiunto</td><td>${escapeHtml(ivaP)}% &nbsp;&nbsp; ${euro(iva)}</td></tr>
+      ${discount>0?`<tr><td>Sconto</td><td>− ${euro(discount)}</td></tr><tr><td>Imponibile netto</td><td>${euro(net)}</td></tr>`:''}
+      <tr><td>IVA</td><td>${escapeHtml(ivaP)}% &nbsp;&nbsp; ${euro(iva)}</td></tr>
       <tr><td>Acconto</td><td>${euro(dep)}</td></tr>
       <tr class="pdf-total"><td>TOTALE</td><td>${euro(total)}</td></tr>
       <tr class="pdf-balance"><td>Saldo residuo</td><td>${euro(balance)}</td></tr>
@@ -271,7 +286,7 @@ function pdfFooter(){
     </div>
     <div class="pdf-footer-sites">
       <a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a>
-      <a href="https://idraulicoservizi.com/" data-pdf-link="site2">idraulicoservizi.com</a>
+      <a href="https://idraulicoservizi.it/" data-pdf-link="site2">idraulicoservizi.it</a>
     </div>
     <div class="pdf-footer-address"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Via Caprera 2, 20851 Lissone MB, Italia')}" data-pdf-link="company-address">Via Caprera 2 · Lissone (MB)</a></div>
   </div>`;
@@ -295,10 +310,10 @@ function termsBlock(items){
   return `<div class="pdf-terms-box"><ol>${items.join('')}</ol></div>`;
 }
 
-function pdfPayment(validity,payment){
+function pdfPayment(validity,payment,issueDate){
   return `<div class="pdf-payment">
-    <div><span>METODO DI PAGAMENTO</span><strong>${escapeHtml(payment||'—')}</strong></div>
-    <div><span>VALIDITÀ DEL PREVENTIVO</span><strong>${escapeHtml(validity||'Non specificata')}</strong></div>
+    <div><span>METODO DI PAGAMENTO</span><strong>${escapeHtml(payment||'Da concordare')}</strong></div>
+    <div><span>VALIDITÀ E SCADENZA</span><strong>${escapeHtml(validityText(validity,issueDate))}</strong></div>
   </div>`;
 }
 
@@ -308,25 +323,25 @@ function buildServicePDF(){
     phone:$('#s-phone').value,email:$('#s-email').value,tax:$('#s-tax').value
   };
   const base=numberIT($('#s-price').value), dep=numberIT($('#s-deposit').value), ivaP=numberIT($('#s-iva').value);
-  const number=docNumber('PREV'), date=dateIT($('#s-date').value), desc=cleanEditorHtml($('#service-editor'));
+  const number=docNumber('PREV'), issueDate=$('#s-date').value, date=dateIT(issueDate), plannedDate=dateIT($('#s-work-date').value), desc=cleanEditorHtml($('#service-editor'));
   const terms=getTermsHTML(document.querySelector('#service-form .terms-box'));
   const validity=$('#s-validity').value.trim();
   const content=`
     ${pdfSectionTitle('DATI DEL COMMITTENTE')}
     ${pdfClientBox(d)}
     ${pdfSectionTitle("DATI DELL'INTERVENTO")}
-    <div class="pdf-box"><table class="pdf-data"><tr><td><span class="pdf-label">CATEGORIA INTERVENTO</span>${escapeHtml($('#s-category').value||'—')}</td><td><span class="pdf-label">DATA INTERVENTO</span>${escapeHtml(date||'—')}</td></tr></table></div>
+    <div class="pdf-box"><table class="pdf-data"><tr><td><span class="pdf-label">CATEGORIA INTERVENTO</span>${escapeHtml($('#s-category').value||'—')}</td><td><span class="pdf-label">DATA EMISSIONE PREVENTIVO</span>${escapeHtml(date||'—')}</td><td><span class="pdf-label">DATA INTERVENTO PREVISTA</span>${escapeHtml(plannedDate||'Da concordare')}</td></tr></table></div>
     ${pdfSectionTitle("OGGETTO DELLA PRESTAZIONE D'OPERA")}
     ${pdfDescription(desc)}
     ${pdfSectionTitle('RIEPILOGO ECONOMICO')}
     ${pdfEconomy(base,0,dep,ivaP)}
-    <div class="pdf-payment"><div><span>VALIDITÀ DEL PREVENTIVO</span><strong>${escapeHtml(validity||'Non specificata')}</strong></div><div><span>DOCUMENTO</span><strong>Preventivo / Contratto</strong></div></div>
+    ${pdfPayment($('#s-validity').value,$('#s-payment').value,issueDate)}
     ${pdfSectionTitle('CONDIZIONI GENERALI DI FORNITURA')}
     ${termsBlock(terms)}
     <div class="pdf-acceptance">Il committente dichiara di aver letto e accettato integralmente le condizioni sopra riportate.</div>
     <div class="pdf-signatures">
-      <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><div class="pdf-sign-space"></div><strong>Michele (Abilart Srls)</strong><small>Documento predisposto digitalmente</small></div>
-      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span class="pdf-sign-date">Data: ${escapeHtml(date||'—')}</span></div>
+      <div class="pdf-signature"><span class="pdf-label">REFERENTE DELL'IMPRESA</span><div class="pdf-sign-space"></div><strong>Abilart Srls</strong><small>Documento predisposto dall'impresa</small></div>
+      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span class="pdf-sign-date">Data di accettazione: ${dateIT(localISODate())}</span></div>
     </div>`;
   return pdfDocument('PREVENTIVO / CONTRATTO',number,date,content);
 }
@@ -334,7 +349,7 @@ function buildServicePDF(){
 function buildEdilePDF(){
   const d={name:$('#e-name').value,address:$('#e-address').value,zip:$('#e-zip').value,city:$('#e-city').value,phone:$('#e-phone').value,email:$('#e-email').value,tax:$('#e-tax').value,reference:$('#e-reference').value};
   const base=numberIT($('#e-price').value), discount=Math.min(Math.max(0,numberIT($('#e-discount').value)),base), dep=Math.max(0,numberIT($('#e-deposit').value)), ivaP=numberIT($('#e-iva').value);
-  const number=docNumber('PREV-EDILE'), date=dateIT($('#e-date').value), desc=cleanEditorHtml($('#edile-editor'));
+  const number=docNumber('PREV-EDILE'), issueDate=$('#e-date').value, date=dateIT(issueDate), plannedDate=dateIT($('#e-work-date').value), desc=cleanEditorHtml($('#edile-editor'));
   const rows=getRows();
   const rowsHTML=rows.length?rows.map(r=>`<tr><td>${escapeHtml(r.voce||'—')}</td><td>${escapeHtml(r.descrizione||'—')}</td><td class="center">${escapeHtml(r.quantita)}</td><td class="center">${escapeHtml(r.unita)}</td><td class="right">${euro(r.prezzo)}</td><td class="right">${euro(r.totale)}</td></tr>`).join(''):`<tr><td colspan="6" class="center muted">Nessuna lavorazione dettagliata inserita.</td></tr>`;
   const tableSubtotal=rows.reduce((s,r)=>s+r.totale,0);
@@ -344,8 +359,8 @@ function buildEdilePDF(){
     ${pdfClientBox(d)}
     ${pdfSectionTitle('DATI INTERVENTO / PREVENTIVO')}
     <div class="pdf-box"><table class="pdf-data">
-      <tr><td><span class="pdf-label">CATEGORIA</span>${escapeHtml($('#e-category').value||'—')}</td><td><span class="pdf-label">TIPOLOGIA LAVORO</span>${escapeHtml($('#e-type').value||'—')}</td><td><span class="pdf-label">DATA</span>${escapeHtml(date||'—')}</td></tr>
-      <tr><td><span class="pdf-label">SUPERFICIE INDICATIVA</span>${escapeHtml($('#e-area').value||'—')} mq</td><td><span class="pdf-label">DURATA STIMATA</span>${escapeHtml($('#e-duration').value||'—')}</td><td><span class="pdf-label">URGENZA</span>${escapeHtml($('#e-urgency').value||'—')}</td></tr>
+      <tr><td><span class="pdf-label">CATEGORIA</span>${escapeHtml($('#e-category').value||'—')}</td><td><span class="pdf-label">TIPOLOGIA LAVORO</span>${escapeHtml($('#e-type').value||'—')}</td><td><span class="pdf-label">DATA EMISSIONE PREVENTIVO</span>${escapeHtml(date||'—')}</td></tr>
+      <tr><td><span class="pdf-label">DATA INTERVENTO PREVISTA</span>${escapeHtml(plannedDate||'Da concordare')}</td><td><span class="pdf-label">SUPERFICIE INDICATIVA</span>${escapeHtml($('#e-area').value||'—')} mq</td><td><span class="pdf-label">DURATA STIMATA</span>${escapeHtml($('#e-duration').value||'Da definire')}</td></tr><tr><td colspan="3"><span class="pdf-label">URGENZA / PRIORITÀ</span>${escapeHtml($('#e-urgency').value||'Normale')}</td></tr>
     </table></div>
     ${pdfSectionTitle("OGGETTO DELLA PRESTAZIONE D'OPERA")}
     ${pdfDescription(desc)}
@@ -354,282 +369,55 @@ function buildEdilePDF(){
     <div class="pdf-table-subtotal"><span>Subtotale lavorazioni</span><strong>${euro(tableSubtotal)}</strong></div>
     ${pdfSectionTitle('RIEPILOGO ECONOMICO')}
     ${pdfEconomy(base,discount,dep,ivaP)}
-    ${pdfPayment($('#e-validity').value,$('#e-payment').value)}
+    ${pdfPayment($('#e-validity').value,$('#e-payment').value,issueDate)}
     ${pdfSectionTitle('CONDIZIONI GENERALI DI CONTRATTO')}
     ${termsBlock(terms)}
-    <div class="pdf-acceptance">Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile, il committente dichiara di aver letto e approvato specificamente le clausole contenute nel presente documento.</div>
+    <div class="pdf-acceptance">Il committente conferma di aver letto il documento, il perimetro delle opere, il riepilogo economico e le condizioni riportate. Le eventuali approvazioni specifiche previste dalla legge devono essere raccolte separatamente, con indicazione puntuale delle clausole.</div>
     <div class="pdf-signatures">
-      <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><div class="pdf-sign-space"></div><strong>Michele (Abilart Srls)</strong><small>Documento firmato digitalmente</small></div>
-      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['e-signature'].data())}<span class="pdf-sign-date">Data: ${escapeHtml(date||'—')}</span></div>
+      <div class="pdf-signature"><span class="pdf-label">REFERENTE DELL'IMPRESA</span><div class="pdf-sign-space"></div><strong>Abilart Srls</strong><small>Documento predisposto dall'impresa</small></div>
+      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['e-signature'].data())}<span class="pdf-sign-date">Data di accettazione: ${dateIT(localISODate())}</span></div>
     </div>`;
   return pdfDocument('PREVENTIVO EDILE',number,date,content);
 }
 
-function sleepFrame(){ return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))); }
-function stabilizeFlowBreaks(doc){
-  const pageHeight=1123;
-  const root=doc.getBoundingClientRect();
-  const topSafe=34;
-  const bottomSafe=38;
-  const continuationMin=96;
-
-  const pagePosOf=el=>{
-    const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const pagePos=((top % pageHeight)+pageHeight)%pageHeight;
-    return {r,top,pagePos,remaining:pageHeight-pagePos};
-  };
-
-  const addMarginTop=el=>{
-    const current=parseFloat(getComputedStyle(el).marginTop)||0;
-    const info=pagePosOf(el);
-    const amount=Math.max(0, info.remaining + topSafe);
-    if(amount>0 && amount<pageHeight) el.style.marginTop=`${current+amount}px`;
-  };
-
-  const pushShortBlock=el=>{
-    const info=pagePosOf(el);
-    const h=info.r.height;
-    if(info.pagePos<=topSafe) return;
-    if(h>=pageHeight-(topSafe+bottomSafe)) return;
-    if(info.remaining < h+bottomSafe) addMarginTop(el);
-  };
-
-  // Section headings: never leave an orphan heading at the bottom.
-  // Long description/terms blocks are intentionally allowed to continue on
-  // the next page, so they are NOT moved as a whole just because they are tall.
-  doc.querySelectorAll('.pdf-title').forEach(title=>{
-    const next=title.nextElementSibling;
-    if(!next) return;
-    const titleInfo=pagePosOf(title);
-    const nextH=next.getBoundingClientRect().height;
-    const isLongFlow=next.classList.contains('pdf-description-flow') || next.classList.contains('pdf-terms-box');
-    const minimumNeeded=titleInfo.r.height + 12 + (isLongFlow ? continuationMin : Math.min(nextH, 180));
-    if(titleInfo.pagePos>topSafe && titleInfo.remaining < minimumNeeded + bottomSafe) addMarginTop(title);
-  });
-
-  // Compact cards stay together when they fit; large flowing boxes do not get
-  // artificially pushed to a new page (that was the source of large white gaps).
-  doc.querySelectorAll('.pdf-client-box, .pdf-flow-body > .pdf-box:not(.pdf-description-flow), .pdf-economy, .pdf-payment, .pdf-acceptance, .pdf-signatures').forEach(pushShortBlock);
-
-  // Tables: keep rows intact where possible, but allow a long table to span pages.
-  doc.querySelectorAll('.pdf-table tbody tr').forEach(row=>{
-    const info=pagePosOf(row);
-    if(info.pagePos>topSafe && info.remaining < info.r.height+bottomSafe && info.r.height < pageHeight-(topSafe+bottomSafe)) addMarginTop(row);
-  });
-
-  // Individual terms stay readable; the terms box itself remains one continuous
-  // one-column structure and can span pages naturally.
-  doc.querySelectorAll('.pdf-terms-box li').forEach(li=>{
-    const info=pagePosOf(li);
-    if(info.pagePos>topSafe && info.remaining < info.r.height+bottomSafe && info.r.height < pageHeight-(topSafe+bottomSafe)) addMarginTop(li);
-  });
+function showPdfProgress(message){let p=document.getElementById('pdf-generation-status');if(!p){p=document.createElement('div');p.id='pdf-generation-status';p.setAttribute('role','status');p.style.cssText='position:fixed;z-index:99999;top:16px;left:50%;transform:translateX(-50%);background:#173f57;color:white;padding:12px 18px;border-radius:10px;font:600 14px system-ui';document.body.appendChild(p);}p.textContent=message;return p;}
+async function downloadPDF(html,filename){
+ if(!window.AbilartPDFRenderer?.render||!window.jspdf?.jsPDF){alert('Il motore PDF non è disponibile. Ricarica la pagina e riprova.');return;}
+ const status=showPdfProgress('Impaginazione professionale del PDF…');
+ try{
+  const pdf=await window.AbilartPDFRenderer.render(html,filename);
+  status.textContent='PDF pronto · download avviato';
+  // jsPDF.save invokes the browser's download flow; no popup or PDF preview is opened.
+  pdf.save(filename);
+  setTimeout(()=>status.remove(),1200);
+ }catch(err){console.error('PDF generation',err);status.textContent='Impossibile generare il PDF. Riprova.';setTimeout(()=>status.remove(),6000);}
 }
 
-function pinFooterToLastPage(doc){
-  const footer=doc.querySelector('.pdf-document-footer');
-  const body=doc.querySelector('.pdf-flow-body');
-  if(!footer || !body) return;
-
-  const root=doc.getBoundingClientRect();
-  const bodyRect=body.getBoundingClientRect();
-  const footerRect=footer.getBoundingClientRect();
-  const pageHeight=1123;
-  const bottomSafe=30;
-  const bodyStyle=getComputedStyle(body);
-  const paddingBottom=parseFloat(bodyStyle.paddingBottom)||0;
-  const contentBottom=Math.max(0, bodyRect.bottom-root.top-paddingBottom);
-  const lastContentPage=Math.max(0,Math.floor(Math.max(0,contentBottom-1)/pageHeight));
-  const pageBottom=(lastContentPage+1)*pageHeight;
-  const pageTargetTop=pageBottom-footerRect.height-bottomSafe;
-  const minFooterTop=contentBottom+16;
-  const targetTop=Math.max(pageTargetTop,minFooterTop);
-  const currentTop=footerRect.top-root.top;
-  const extra=Math.max(0,targetTop-currentTop);
-  footer.style.marginTop=`${extra}px`;
-}
-
-function addPdfWatermark(pdf,pageIndex,total,title){
-  // Watermark is already baked into the document BACKGROUND by html2canvas.
-  // Only the page number is added here, in the safe bottom margin.
-  pdf.saveGraphicsState();
-  pdf.setTextColor(128,143,151);
-  pdf.setFont('helvetica','normal');
-  pdf.setFontSize(6.5);
-  pdf.text(`${title}  •  PAGINA ${pageIndex+1} / ${total}`,198,273,{align:'right'});
-  pdf.restoreGraphicsState();
-}
-
-function addContinuationPageBreathing(doc){
-  const pageHeight=1123;
-  const root=doc.getBoundingClientRect();
-  const pageGap=16;
-  const candidates=[
-    ...doc.querySelectorAll('.pdf-description-content > p, .pdf-description-content > h1, .pdf-description-content > h2, .pdf-description-content > h3, .pdf-description-content > ul, .pdf-description-content > ol, .pdf-terms-box li, .pdf-table tbody tr')
-  ];
-  candidates.forEach(el=>{
-    const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const bottom=r.bottom-root.top;
-    const startPage=Math.floor(Math.max(0,top)/pageHeight);
-    const endPage=Math.floor(Math.max(0,bottom-0.5)/pageHeight);
-    if(endPage<=startPage) return;
-    // The element already crosses a page. Do not move or shrink it: the normal
-    // flow remains authoritative. This helper only marks the continuation so
-    // the renderer can keep the next fragment visually calm.
-    el.dataset.pdfContinuation='true';
-  });
-  // A tiny, non-invasive top padding is applied only to blocks that begin very
-  // close to an A4 boundary. It avoids text appearing glued to the page edge.
-  candidates.forEach(el=>{
-    const r=el.getBoundingClientRect();
-    const top=r.top-root.top;
-    const pagePos=((top%pageHeight)+pageHeight)%pageHeight;
-    if(pagePos>0 && pagePos<pageGap){
-      const current=parseFloat(getComputedStyle(el).marginTop)||0;
-      el.style.marginTop=`${current+(pageGap-pagePos)}px`;
-    }
-  });
-}
-
-async function downloadPDF(html, filename){
-  if(typeof html2canvas==='undefined' || typeof window.jspdf==='undefined' || typeof window.jspdf.jsPDF==='undefined'){
-    alert('Il motore PDF non è stato caricato. Controlla la connessione Internet e ricarica la pagina.');
-    return;
-  }
-
-  const holder=document.createElement('div');
-  holder.className='pdf-render-host';
-  holder.innerHTML=html;
-  document.body.appendChild(holder);
-  document.body.classList.add('pdf-rendering');
-
-  try{
-    const doc=holder.querySelector('.pdf-flow-document');
-    const {jsPDF}=window.jspdf;
-    if(!doc) throw new Error('Documento PDF non trovato');
-
-    doc.style.width='794px';
-    doc.style.height='auto';
-    doc.style.minHeight='0';
-    doc.style.overflow='visible';
-
-    await document.fonts?.ready;
-    await sleepFrame();
-    stabilizeFlowBreaks(doc);
-    await sleepFrame();
-    pinFooterToLastPage(doc);
-    await sleepFrame();
-    addContinuationPageBreathing(doc);
-    await sleepFrame();
-    pinFooterToLastPage(doc);
-    await sleepFrame();
-
-    /*
-      IMPORTANTISSIMO:
-      non renderizziamo una pagina alla volta con html2canvas.
-      html2canvas puo' infatti ricomputare il viewport/crop e duplicare
-      porzioni del documento. Renderizziamo UNA SOLA VOLTA il flusso
-      completo e poi ritagliamo il canvas in pagine A4.
-    */
-    const cssWidth=794;
-    const cssPageHeight=1123;
-    const fullHeight=Math.ceil(doc.scrollHeight);
-    const renderScale=1.5;
-    const totalPages=Math.max(1,Math.ceil(fullHeight/cssPageHeight));
-
-    const fullCanvas=await html2canvas(doc,{
-      width:cssWidth,
-      height:fullHeight,
-      windowWidth:cssWidth,
-      windowHeight:Math.min(fullHeight,3000),
-      x:0,
-      y:0,
-      scale:renderScale,
-      useCORS:true,
-      allowTaint:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      scrollX:0,
-      scrollY:0,
-      imageTimeout:15000
-    });
-
-    const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true,putOnlyUsedFonts:true});
-    const title=doc.querySelector('.pdf-doc-type')?.textContent?.trim()||'DOCUMENTO';
-
-    for(let page=0; page<totalPages; page++){
-      const sourceY=page*cssPageHeight*renderScale;
-      const remaining=Math.min(cssPageHeight, fullHeight-page*cssPageHeight);
-      if(remaining<=0) continue;
-
-      const crop=document.createElement('canvas');
-      crop.width=Math.round(cssWidth*renderScale);
-      crop.height=Math.round(cssPageHeight*renderScale);
-      const ctx=crop.getContext('2d');
-      ctx.imageSmoothingEnabled=true;
-      ctx.imageSmoothingQuality='high';
-      ctx.fillStyle='#ffffff';
-      ctx.fillRect(0,0,crop.width,crop.height);
-      ctx.drawImage(
-        fullCanvas,
-        0, sourceY,
-        fullCanvas.width, Math.round(remaining*renderScale),
-        0, 0,
-        crop.width, Math.round(remaining*renderScale)
-      );
-
-      if(page>0) pdf.addPage('a4','portrait');
-      pdf.addImage(crop.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');
-      addPdfWatermark(pdf,page,totalPages,title);
-    }
-
-    // Link cliccabili: vengono ricostruiti sopra l'immagine, pagina per pagina.
-    const docRect=doc.getBoundingClientRect();
-    const mmX=210/cssWidth, mmY=297/cssPageHeight;
-    doc.querySelectorAll('[data-pdf-link]').forEach(el=>{
-      const r=el.getBoundingClientRect();
-      const top=r.top-docRect.top, bottom=r.bottom-docRect.top;
-      const first=Math.floor(Math.max(0,top)/cssPageHeight);
-      const last=Math.floor(Math.max(0,bottom-0.5)/cssPageHeight);
-      for(let page=first;page<=last && page<totalPages;page++){
-        const pageTop=page*cssPageHeight;
-        const visibleTop=Math.max(top,pageTop);
-        const visibleBottom=Math.min(bottom,pageTop+cssPageHeight);
-        if(visibleBottom<=visibleTop) continue;
-        const x=(r.left-docRect.left)*mmX;
-        const y=(visibleTop-pageTop)*mmY;
-        const w=Math.max(2,r.width*mmX);
-        const h=Math.max(3,(visibleBottom-visibleTop)*mmY);
-        if(el.href){
-          pdf.setPage(page+1);
-          pdf.link(x,y,w,h,{url:el.href});
-        }
-      }
-    });
-
-    pdf.save(filename);
-  }catch(err){
-    console.error('Errore generazione PDF:',err);
-    alert('Errore durante la generazione del PDF. Riprova dopo aver ricaricato la pagina.');
-  }finally{
-    document.body.classList.remove('pdf-rendering');
-    holder.remove();
-  }
+function quoteBusinessCheck(form){
+ const service=form.id==='service-form',ids=service?{base:'s-price',iva:'s-iva',deposit:'s-deposit',discount:null,validity:'s-validity',date:'s-date'}:{base:'e-price',iva:'e-iva',deposit:'e-deposit',discount:'e-discount',validity:'e-validity',date:'e-date'};
+ const v=id=>document.getElementById(id).value.trim(),n=id=>numberIT(v(id)),pattern=/^-?(?:\d+|\d{1,3}(?:\.\d{3})+)(?:[,.]\d{1,2})?$/;
+ for(const id of [ids.base,ids.iva,ids.deposit,ids.discount].filter(Boolean))if(v(id)&&!pattern.test(v(id).replace(/[€\s]/g,''))){alert('Controlla gli importi: numeri validi e massimo due decimali.');return false;}
+ const base=n(ids.base),iva=n(ids.iva),dep=n(ids.deposit),discount=ids.discount?n(ids.discount):0;
+ if(!v(ids.base)||base<0||iva<0||iva>100||dep<0||discount<0||discount>base){alert('Imponibile, IVA, sconto e acconto non sono coerenti.');return false;}
+ if(dep>(base-discount)*(1+iva/100)+.01){alert('L’acconto non può superare il totale.');return false;}
+ const days=Number(v(ids.validity));if(!Number.isInteger(days)||days<1||days>365){alert('Validità in giorni richiesta (da 1 a 365).');return false;}
+ if(!v(ids.date)){alert('Inserisci la data di emissione.');return false;}
+ if(!service){const rows=getRows();if(rows.some(r=>r.quantita<0||r.prezzo<0)){alert('Quantità e prezzi non possono essere negativi.');return false;}if(rows.length){const sum=rows.reduce((s,r)=>s+r.totale,0);if(Math.abs(sum-base)>.02){alert('Subtotale lavorazioni '+euro(sum)+' diverso dall’imponibile '+euro(base)+'. Correggi prima di generare il PDF.');return false;}}}
+ return true;
 }
 $('#service-form').addEventListener('submit',async e=>{
-  e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
+  e.preventDefault(); if(!requiredCheck(e.currentTarget)||!quoteBusinessCheck(e.currentTarget))return;
   const name=$('#s-name').value.trim().replace(/\s+/g,'_')||'Cliente';
   await downloadPDF(buildServicePDF(),`Preventivo_Abilart_${name}.pdf`);
 });
 $('#edile-form').addEventListener('submit',async e=>{
-  e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
+  e.preventDefault(); if(!requiredCheck(e.currentTarget)||!quoteBusinessCheck(e.currentTarget))return;
   const name=$('#e-name').value.trim().replace(/\s+/g,'_')||'Cliente';
   await downloadPDF(buildEdilePDF(),`Preventivo_Edile_Abilart_${name}.pdf`);
 });
 
 document.addEventListener('DOMContentLoaded',()=>{
-  const today=new Date().toISOString().slice(0,10);
+  const today=localISODate();
   $('#s-date').value=today; $('#e-date').value=today;
   serviceCalc(); edileCalc();
 });

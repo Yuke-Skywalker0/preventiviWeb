@@ -50,6 +50,13 @@ La logica PDF è progettata per:
 
 Il footer non viene ripetuto automaticamente su ogni pagina: viene posizionato nell'ultima pagina disponibile, come richiesto.
 
+## Verifiche di coerenza del preventivo
+
+- La data di emissione è distinta dalla data prevista dell'intervento.
+- La validità è espressa in giorni e la data di scadenza viene calcolata nel PDF.
+- Prima della generazione vengono controllati gli importi, la capienza dell'acconto e, quando presenti, la corrispondenza tra righe dettagliate e imponibile.
+- Le firme disegnate nel canvas sono immagini di firma raccolte nell'interfaccia: non costituiscono una firma digitale qualificata.
+
 ## Calcoli
 
 ### Preventivo / Contratto
@@ -121,3 +128,6 @@ Per l'utilizzo come contratto definitivo è consigliabile una verifica professio
 - **Email: abilart.impresaedile@gmail.com**
 - **Sito: https://impresaedileabilart.com/**
 - **Sito: https://idraulicoservizi.com/**
+
+
+

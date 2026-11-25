@@ -29,6 +29,9 @@ function dateIT(value) {
   const [y,m,d] = value.split('-');
   return y && m && d ? `${d}/${m}/${y}` : value;
 }
+function localISODate(date=new Date()){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return `${y}-${m}-${d}`;}
+function addDaysISO(value,days){if(!value||!Number.isInteger(days)||days<1)return '';const [y,m,d]=value.split('-').map(Number),date=new Date(y,m-1,d);date.setDate(date.getDate()+days);return localISODate(date);}
+function validityText(value,issueDate){const days=Number(value);if(!Number.isInteger(days)||days<1||days>365)return 'Validità non impostata';const expiry=addDaysISO(issueDate,days);return `${days} giorni dalla data di emissione`+(expiry?` (scadenza ${dateIT(expiry)})`:'');}
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -296,10 +299,10 @@ function termsBlock(items){
   return `<div class="pdf-terms-box"><ol>${items.join('')}</ol></div>`;
 }
 
-function pdfPayment(validity,payment){
+function pdfPayment(validity,payment,issueDate){
   return `<div class="pdf-payment">
-    <div><span>METODO DI PAGAMENTO</span><strong>${escapeHtml(payment||'—')}</strong></div>
-    <div><span>VALIDITÀ DEL PREVENTIVO</span><strong>${escapeHtml(validity||'Non specificata')}</strong></div>
+    <div><span>METODO DI PAGAMENTO</span><strong>${escapeHtml(payment||'Da concordare')}</strong></div>
+    <div><span>VALIDITÀ E SCADENZA</span><strong>${escapeHtml(validityText(validity,issueDate))}</strong></div>
   </div>`;
 }
 
@@ -309,25 +312,25 @@ function buildServicePDF(){
     phone:$('#s-phone').value,email:$('#s-email').value,tax:$('#s-tax').value
   };
   const base=numberIT($('#s-price').value), dep=numberIT($('#s-deposit').value), ivaP=numberIT($('#s-iva').value);
-  const number=docNumber('PREV'), date=dateIT($('#s-date').value), desc=cleanEditorHtml($('#service-editor'));
+  const number=docNumber('PREV'), issueDate=$('#s-date').value, date=dateIT(issueDate), plannedDate=dateIT($('#s-work-date').value), desc=cleanEditorHtml($('#service-editor'));
   const terms=getTermsHTML(document.querySelector('#service-form .terms-box'));
   const validity=$('#s-validity').value.trim();
   const content=`
     ${pdfSectionTitle('DATI DEL COMMITTENTE')}
     ${pdfClientBox(d)}
     ${pdfSectionTitle("DATI DELL'INTERVENTO")}
-    <div class="pdf-box"><table class="pdf-data"><tr><td><span class="pdf-label">CATEGORIA INTERVENTO</span>${escapeHtml($('#s-category').value||'—')}</td><td><span class="pdf-label">DATA INTERVENTO</span>${escapeHtml(date||'—')}</td></tr></table></div>
+    <div class="pdf-box"><table class="pdf-data"><tr><td><span class="pdf-label">CATEGORIA INTERVENTO</span>${escapeHtml($('#s-category').value||'—')}</td><td><span class="pdf-label">DATA EMISSIONE PREVENTIVO</span>${escapeHtml(date||'—')}</td><td><span class="pdf-label">DATA INTERVENTO PREVISTA</span>${escapeHtml(plannedDate||'Da concordare')}</td></tr></table></div>
     ${pdfSectionTitle("OGGETTO DELLA PRESTAZIONE D'OPERA")}
     ${pdfDescription(desc)}
     ${pdfSectionTitle('RIEPILOGO ECONOMICO')}
     ${pdfEconomy(base,0,dep,ivaP)}
-    <div class="pdf-payment"><div><span>VALIDITÀ DEL PREVENTIVO</span><strong>${escapeHtml(validity||'Non specificata')}</strong></div><div><span>DOCUMENTO</span><strong>Preventivo / Contratto</strong></div></div>
+    ${pdfPayment($('#s-validity').value,$('#s-payment').value,issueDate)}
     ${pdfSectionTitle('CONDIZIONI GENERALI DI FORNITURA')}
     ${termsBlock(terms)}
     <div class="pdf-acceptance">Il committente dichiara di aver letto e accettato integralmente le condizioni sopra riportate.</div>
     <div class="pdf-signatures">
       <div class="pdf-signature"><span class="pdf-label">FIRMA TECNICO APPALTANTE</span><div class="pdf-sign-space"></div><strong>Michele (Abilart Srls)</strong><small>Documento predisposto digitalmente</small></div>
-      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span class="pdf-sign-date">Data: ${escapeHtml(date||'—')}</span></div>
+      <div class="pdf-signature"><span class="pdf-label">FIRMA DEL CLIENTE PER ACCETTAZIONE</span>${signatureImg(signatures['s-signature'].data())}<span class="pdf-sign-date">Data firma: ${dateIT(localISODate())}</span></div>
     </div>`;
   return pdfDocument('PREVENTIVO / CONTRATTO',number,date,content);
 }
@@ -335,7 +338,7 @@ function buildServicePDF(){
 function buildEdilePDF(){
   const d={name:$('#e-name').value,address:$('#e-address').value,zip:$('#e-zip').value,city:$('#e-city').value,phone:$('#e-phone').value,email:$('#e-email').value,tax:$('#e-tax').value,reference:$('#e-reference').value};
   const base=numberIT($('#e-price').value), discount=Math.min(Math.max(0,numberIT($('#e-discount').value)),base), dep=Math.max(0,numberIT($('#e-deposit').value)), ivaP=numberIT($('#e-iva').value);
-  const number=docNumber('PREV-EDILE'), date=dateIT($('#e-date').value), desc=cleanEditorHtml($('#edile-editor'));
+  const number=docNumber('PREV-EDILE'), issueDate=$('#e-date').value, date=dateIT(issueDate), plannedDate=dateIT($('#e-work-date').value), desc=cleanEditorHtml($('#edile-editor'));
   const rows=getRows();
   const rowsHTML=rows.length?rows.map(r=>`<tr><td>${escapeHtml(r.voce||'—')}</td><td>${escapeHtml(r.descrizione||'—')}</td><td class="center">${escapeHtml(r.quantita)}</td><td class="center">${escapeHtml(r.unita)}</td><td class="right">${euro(r.prezzo)}</td><td class="right">${euro(r.totale)}</td></tr>`).join(''):`<tr><td colspan="6" class="center muted">Nessuna lavorazione dettagliata inserita.</td></tr>`;
   const tableSubtotal=rows.reduce((s,r)=>s+r.totale,0);
@@ -345,8 +348,8 @@ function buildEdilePDF(){
     ${pdfClientBox(d)}
     ${pdfSectionTitle('DATI INTERVENTO / PREVENTIVO')}
     <div class="pdf-box"><table class="pdf-data">
-      <tr><td><span class="pdf-label">CATEGORIA</span>${escapeHtml($('#e-category').value||'—')}</td><td><span class="pdf-label">TIPOLOGIA LAVORO</span>${escapeHtml($('#e-type').value||'—')}</td><td><span class="pdf-label">DATA</span>${escapeHtml(date||'—')}</td></tr>
-      <tr><td><span class="pdf-label">SUPERFICIE INDICATIVA</span>${escapeHtml($('#e-area').value||'—')} mq</td><td><span class="pdf-label">DURATA STIMATA</span>${escapeHtml($('#e-duration').value||'—')}</td><td><span class="pdf-label">URGENZA</span>${escapeHtml($('#e-urgency').value||'—')}</td></tr>
+      <tr><td><span class="pdf-label">CATEGORIA</span>${escapeHtml($('#e-category').value||'—')}</td><td><span class="pdf-label">TIPOLOGIA LAVORO</span>${escapeHtml($('#e-type').value||'—')}</td><td><span class="pdf-label">DATA EMISSIONE PREVENTIVO</span>${escapeHtml(date||'—')}</td></tr>
+      <tr><td><span class="pdf-label">DATA INTERVENTO PREVISTA</span>${escapeHtml(plannedDate||'Da concordare')}</td><td><span class="pdf-label">SUPERFICIE INDICATIVA</span>${escapeHtml($('#e-area').value||'—')} mq</td><td><span class="pdf-label">DURATA STIMATA</span>${escapeHtml($('#e-duration').value||'Da definire')}</td></tr><tr><td colspan="3"><span class="pdf-label">URGENZA / PRIORITÀ</span>${escapeHtml($('#e-urgency').value||'Normale')}</td></tr>
     </table></div>
     ${pdfSectionTitle("OGGETTO DELLA PRESTAZIONE D'OPERA")}
     ${pdfDescription(desc)}
@@ -355,7 +358,7 @@ function buildEdilePDF(){
     <div class="pdf-table-subtotal"><span>Subtotale lavorazioni</span><strong>${euro(tableSubtotal)}</strong></div>
     ${pdfSectionTitle('RIEPILOGO ECONOMICO')}
     ${pdfEconomy(base,discount,dep,ivaP)}
-    ${pdfPayment($('#e-validity').value,$('#e-payment').value)}
+    ${pdfPayment($('#e-validity').value,$('#e-payment').value,issueDate)}
     ${pdfSectionTitle('CONDIZIONI GENERALI DI CONTRATTO')}
     ${termsBlock(terms)}
     <div class="pdf-acceptance">Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice Civile, il committente dichiara di aver letto e approvato specificamente le clausole contenute nel presente documento.</div>
@@ -592,8 +595,20 @@ async function downloadPDF(html, filename, outputWindow=null){
     holder.remove();
   }
 }
+function quoteBusinessCheck(form){
+ const service=form.id==='service-form',ids=service?{base:'s-price',iva:'s-iva',deposit:'s-deposit',discount:null,validity:'s-validity',date:'s-date'}:{base:'e-price',iva:'e-iva',deposit:'e-deposit',discount:'e-discount',validity:'e-validity',date:'e-date'};
+ const v=id=>document.getElementById(id).value.trim(),n=id=>numberIT(v(id)),pattern=/^-?(?:\\d+|\\d{1,3}(?:\\.\\d{3})+)(?:[,.]\\d{1,2})?$/;
+ for(const id of [ids.base,ids.iva,ids.deposit,ids.discount].filter(Boolean))if(v(id)&&!pattern.test(v(id).replace(/[€\\s]/g,''))){alert('Controlla gli importi: numeri validi e massimo due decimali.');return false;}
+ const base=n(ids.base),iva=n(ids.iva),dep=n(ids.deposit),discount=ids.discount?n(ids.discount):0;
+ if(!v(ids.base)||base<0||iva<0||iva>100||dep<0||discount<0||discount>base){alert('Imponibile, IVA, sconto e acconto non sono coerenti.');return false;}
+ if(dep>(base-discount)*(1+iva/100)+.01){alert('L’acconto non può superare il totale.');return false;}
+ const days=Number(v(ids.validity));if(!Number.isInteger(days)||days<1||days>365){alert('Validità in giorni richiesta (da 1 a 365).');return false;}
+ if(!v(ids.date)){alert('Inserisci la data di emissione.');return false;}
+ if(!service){const rows=getRows();if(rows.some(r=>r.quantita<0||r.prezzo<0)){alert('Quantità e prezzi non possono essere negativi.');return false;}if(rows.length){const sum=rows.reduce((s,r)=>s+r.totale,0);if(Math.abs(sum-base)>.02){alert('Subtotale lavorazioni '+euro(sum)+' diverso dall’imponibile '+euro(base)+'. Correggi prima di generare il PDF.');return false;}}}
+ return true;
+}
 $('#service-form').addEventListener('submit',async e=>{
-  e.preventDefault(); if(!requiredCheck(e.currentTarget))return;
+  e.preventDefault(); if(!requiredCheck(e.currentTarget)||!quoteBusinessCheck(e.currentTarget))return;
   const name=$('#s-name').value.trim().replace(/\s+/g,'_')||'Cliente';
   const outputWindow=preparePdfOutputWindow();
   await downloadPDF(buildServicePDF(),`Preventivo_Abilart_${name}.pdf`,outputWindow);
@@ -606,7 +621,7 @@ $('#edile-form').addEventListener('submit',async e=>{
 });
 
 document.addEventListener('DOMContentLoaded',()=>{
-  const today=new Date().toISOString().slice(0,10);
+  const today=localISODate();
   $('#s-date').value=today; $('#e-date').value=today;
   serviceCalc(); edileCalc();
 });

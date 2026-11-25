@@ -67,3 +67,32 @@ test('PDF content wraps safely without font compression or stretched images', as
   assert.match(css, /\.pdf-flow-body \.pdf-signature img\{[\s\S]*?max-width:100%/);
 });
 
+
+test('quote issue date is distinct from planned intervention date and validity is calendar-based', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /Data emissione preventivo/);
+  assert.match(html, /id="s-work-date"/);
+  assert.match(html, /id="e-work-date"/);
+  assert.match(html, /type="number" min="1" max="365" step="1" value="15"/);
+  const helpersSource = source.slice(source.indexOf('function dateIT('), source.indexOf('function escapeHtml('));
+  const helpers = new Function(helpersSource + '; return { addDaysISO, validityText };')();
+  assert.equal(helpers.addDaysISO('2026-11-25', 15), '2026-12-10');
+  assert.equal(helpers.validityText('15', '2026-11-25'), '15 giorni dalla data di emissione (scadenza 10/12/2026)');
+});
+
+test('commercial validation is wired to both forms and prevents inconsistent totals', () => {
+  assert.match(source, /function quoteBusinessCheck\(form\)/);
+  assert.match(source, /Il subtotale lavorazioni/);
+  assert.match(source, /L’acconto non può superare il totale/);
+  assert.equal((source.match(/quoteBusinessCheck\(e\.currentTarget\)/g) || []).length, 2);
+  assert.match(source, /pattern=\/\^-\?\(\?:\\d\+/);
+});
+
+test('contract wording does not mislabel an image signature as a digital signature', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /foro previsto dalla normativa a sua tutela/);
+  assert.match(html, /opere aggiuntive non sono comprese/);
+  assert.match(html, /informativa privacy completa è resa separatamente/);
+  assert.doesNotMatch(source, /Documento firmato digitalmente/);
+  assert.doesNotMatch(source, /approvato specificamente le clausole contenute nel presente documento/);
+});

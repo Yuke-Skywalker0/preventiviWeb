@@ -77,7 +77,7 @@ test('rich editor block paragraphs and escaped newline tokens render as actual l
 });
 
 test('plain-text editor newlines are not collapsed before PDF layout', () => {
-  assert.match(renderer, /drawRichLine\(inlineRuns\(el\),x,ctx\.y,w,size\)/);
+  assert.match(renderer, /function drawInline\(node,indent=0,spacing=1\.8\)/);\n  assert.match(renderer, /drawRichLine\(runs,x\+indent,ctx\.y,w-indent,size\)/);
 });
 
 test('editor sanitizer retains safe inline italic styles', () => {

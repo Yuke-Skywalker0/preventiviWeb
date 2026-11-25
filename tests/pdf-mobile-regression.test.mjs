@@ -8,7 +8,7 @@ const end = source.indexOf("\n$('#service-form').addEventListener", start);
 assert.ok(start >= 0 && end > start, 'PDF function boundaries must exist');
 const pdfFn = source.slice(start, end);
 const pageCutFnStart = source.indexOf('function getPdfPageCuts(');
-const pageCutFnEnd = source.indexOf('\n    async function downloadPDF(', pageCutFnStart);
+const pageCutFnEnd = source.indexOf('\nasync function downloadPDF(', pageCutFnStart);
 assert.ok(pageCutFnStart >= 0 && pageCutFnEnd > pageCutFnStart, 'page cut function boundaries must exist');
 const pageCutFn = source.slice(pageCutFnStart, pageCutFnEnd);
 

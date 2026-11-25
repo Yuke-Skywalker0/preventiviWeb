@@ -32,7 +32,7 @@ function createEngine(root,p,logo){
   p.setFont('helvetica','normal');p.setFontSize(6.5);setColor(p,'muted');p.text('DATA: '+(ctx.meta.date||'—'),170.5,23,{align:'center'});
   line(p,'line');p.setLineWidth(.35);p.line(14,34,196,34);
   p.setFont('helvetica','bold');p.setFontSize(12.5);setColor(p,'navy');p.text(ctx.title.toUpperCase(),14,42);
-  if(ctx.page>1){p.setFont('helvetica','normal');p.setFontSize(6.4);setColor(p,'muted');p.text('DOCUMENTO IN CONTINUAZIONE',196,41.1,{align:'right'});}
+  
  }
  function footer(){
   const n=p.getNumberOfPages();

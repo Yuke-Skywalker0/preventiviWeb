@@ -212,7 +212,7 @@ function createEngine(root,p,logo){
    const tag=list.tagName.toLowerCase(),items=[...list.children].filter(n=>n.tagName.toLowerCase()==='li');
    items.forEach((li,index)=>{
     ensure(size*1.2,4);
-    const nested=[...li.querySelectorAll('ul,ol')];
+    const nested=[...li.querySelectorAll('ul,ol')].filter(sub=>sub.closest('li')===li);
     const content=li.cloneNode(true);
     content.querySelectorAll('ul,ol').forEach(n=>n.remove());
     const runs=inlineRuns(content);

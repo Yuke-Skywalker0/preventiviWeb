@@ -401,15 +401,29 @@ function addPdfWatermark(pdf,pageIndex,total,title){
   pdf.restoreGraphicsState();
 }
 
+function isIOSPdfViewer(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+}
 function preparePdfOutputWindow(){
-  // Open synchronously during the submit gesture so iOS Safari does not block
-  // the PDF tab after the asynchronous canvas rendering completes.
-  try{
-    return window.open('about:blank','_blank');
-  }catch(err){
-    console.warn('Impossibile predisporre la scheda PDF:',err);
-    return null;
+  // iOS Safari needs a user-gesture-opened tab for reliable Blob PDF viewing.
+  // Desktop browsers should receive a real download instead of an empty tab.
+  if(!isIOSPdfViewer()) return null;
+  try{return window.open('about:blank','_blank');}
+  catch(err){console.warn('Impossibile predisporre la scheda PDF:',err);return null;}
+}
+function showPdfProgress(message){
+  let panel=document.getElementById('pdf-generation-status');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='pdf-generation-status';
+    panel.setAttribute('role','status');
+    panel.setAttribute('aria-live','polite');
+    panel.style.cssText='position:fixed;z-index:2147483647;left:50%;top:18px;transform:translateX(-50%);width:min(92vw,420px);padding:16px 20px;background:#173f57;color:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);font:600 14px/1.5 system-ui,sans-serif;text-align:center';
+    document.body.appendChild(panel);
   }
+  panel.textContent=message;
+  return panel;
 }
 
 function getPdfPageCuts(doc,pageHeight,fullHeight){
@@ -461,6 +475,7 @@ async function downloadPDF(html, filename, outputWindow=null){
   document.body.classList.add('pdf-rendering');
 
   let renderedCanvas=null;
+  const progress=showPdfProgress('Preparazione del preventivo…');
   try{
     const doc=holder.querySelector('.pdf-flow-document');
     const {jsPDF}=window.jspdf;
@@ -487,11 +502,15 @@ async function downloadPDF(html, filename, outputWindow=null){
     const fullHeight=Math.ceil(doc.scrollHeight);
     const pageCuts=getPdfPageCuts(doc,cssPageHeight,fullHeight);
     const totalPages=pageCuts.length-1;
-    const renderScale=1.5;
+    // A moderate scale cuts the pixel workload by ~44% versus 1.5x,
+    // while retaining readable A4 output on screens and standard printing.
+    const renderScale=1.25;
     const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true,putOnlyUsedFonts:true});
     const title=doc.querySelector('.pdf-doc-type')?.textContent?.trim()||'DOCUMENTO';
 
     for(let page=0;page<totalPages;page++){
+      showPdfProgress(`Generazione PDF · pagina ${page+1} di ${totalPages}`);
+      await sleepFrame();
       const pageTop=pageCuts[page];
       const pageHeight=pageCuts[page+1]-pageTop;
       if(pageHeight<=0) continue;
@@ -536,19 +555,32 @@ async function downloadPDF(html, filename, outputWindow=null){
       }
     });
 
+    showPdfProgress('Finalizzazione e download del PDF…');
+    const blob=pdf.output('blob');
+    const blobUrl=URL.createObjectURL(blob);
     if(outputWindow&&!outputWindow.closed){
-      const blob=pdf.output('blob');
-      const blobUrl=URL.createObjectURL(blob);
+      // iOS: native viewer provides Save to Files / Share when direct download
+      // support is inconsistent. The tab was opened synchronously on submit.
       outputWindow.location.replace(blobUrl);
-      // Keep the URL alive long enough for Safari's native PDF viewer/share UI.
-      window.setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
+      showPdfProgress('PDF pronto. Nella scheda aperta usa Condividi → Salva su File.');
+      window.setTimeout(()=>{URL.revokeObjectURL(blobUrl);progress.remove();},120000);
     }else{
-      pdf.save(filename);
+      // Desktop: explicitly trigger a browser download from the completed Blob.
+      const link=document.createElement('a');
+      link.href=blobUrl;
+      link.download=filename;
+      link.style.display='none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showPdfProgress('PDF generato: download avviato.');
+      window.setTimeout(()=>{URL.revokeObjectURL(blobUrl);progress.remove();},3000);
     }
   }catch(err){
     console.error('Errore generazione PDF:',err);
     outputWindow?.close();
-    alert('Errore durante la generazione del PDF. Riprova dopo aver ricaricato la pagina.');
+    progress.textContent='Generazione PDF non riuscita. Riprova; se il problema persiste, prova un documento più breve o aggiorna la pagina.';
+    window.setTimeout(()=>progress.remove(),7000);
   }finally{
     if(renderedCanvas){renderedCanvas.width=0;renderedCanvas.height=0;}
     document.body.classList.remove('pdf-rendering');

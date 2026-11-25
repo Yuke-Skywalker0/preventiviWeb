@@ -204,7 +204,7 @@ function pdfPageHeader(title, number, date){
         <span>P. IVA / C.F. 10439280966</span>
         <span><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Via Caprera 2, 20851 Lissone MB, Italia')}" data-pdf-link="company-address">Via Caprera 2, 20851 Lissone (MB)</a></span>
         <span>Zone operative: Monza, Milano, Bergamo e relative province</span>
-        <span><a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a> · <a href="https://idraulicoservizi.com/" data-pdf-link="site2">idraulicoservizi.com</a></span>
+        <span><a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a> · <a href="https://idraulicoservizi.it/" data-pdf-link="site2">idraulicoservizi.it</a></span>
         <span><a href="tel:+393204295445" data-pdf-link="phone">+39 320 429 5445</a> &nbsp;·&nbsp; <a href="https://wa.me/393204295445" data-pdf-link="whatsapp">WhatsApp</a> &nbsp;·&nbsp; <a href="mailto:abilart.impresaedile@gmail.com" data-pdf-link="email">abilart.impresaedile@gmail.com</a></span>
       </div>
     </div>
@@ -272,7 +272,7 @@ function pdfFooter(){
     </div>
     <div class="pdf-footer-sites">
       <a href="https://impresaedileabilart.com/" data-pdf-link="site1">impresaedileabilart.com</a>
-      <a href="https://idraulicoservizi.com/" data-pdf-link="site2">idraulicoservizi.com</a>
+      <a href="https://idraulicoservizi.it/" data-pdf-link="site2">idraulicoservizi.it</a>
     </div>
     <div class="pdf-footer-address"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Via Caprera 2, 20851 Lissone MB, Italia')}" data-pdf-link="company-address">Via Caprera 2 · Lissone (MB)</a></div>
   </div>`;

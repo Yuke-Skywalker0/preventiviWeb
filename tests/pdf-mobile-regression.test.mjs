@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../app.js', import.meta.url), 'utf8');
-const pdfFn = source.slice(source.indexOf('async function downloadPDF('), source.indexOf("\\n$('#service-form').addEventListener"));
+const start = source.indexOf('async function downloadPDF(');
+const end = source.indexOf("\n$('#service-form').addEventListener", start);
+assert.ok(start >= 0 && end > start, 'PDF function boundaries must exist');
+const pdfFn = source.slice(start, end);
 
 test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.match(pdfFn, /for\s*\(let page=0;page<totalPages;page\+\+\)/);

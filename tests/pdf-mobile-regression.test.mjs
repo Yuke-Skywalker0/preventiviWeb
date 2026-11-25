@@ -7,6 +7,9 @@ const start = source.indexOf('async function downloadPDF(');
 const end = source.indexOf("\n$('#service-form').addEventListener", start);
 assert.ok(start >= 0 && end > start, 'PDF function boundaries must exist');
 const pdfFn = source.slice(start, end);
+const paginationStart = source.indexOf('function addContinuationPageBreathing(');
+const paginationEnd = source.indexOf('\nasync function downloadPDF', paginationStart);
+const paginationFn = source.slice(paginationStart, paginationEnd);
 
 test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.match(pdfFn, /for\s*\(let page=0;page<totalPages;page\+\+\)/);
@@ -14,6 +17,14 @@ test('PDF renders bounded A4 slices, never one document-sized canvas', () => {
   assert.match(pdfFn, /windowHeight:cssPageHeight/);
   assert.doesNotMatch(pdfFn, /fullCanvas/);
   assert.doesNotMatch(pdfFn, /height:fullHeight/);
+});
+
+test('short text blocks are moved away from page cut lines', () => {
+  assert.match(paginationFn, /pdf-description-content > p/);
+  assert.match(paginationFn, /startPage===endPage/);
+  assert.match(paginationFn, /pageHeight-pagePos<height\+safeBottom/);
+  assert.match(paginationFn, /el\.style\.marginTop/);
+  assert.match(source, /\.pdf-terms-box li/);
 });
 
 test('temporary canvases are released between pages and on errors', () => {
@@ -29,6 +40,13 @@ test('iOS output uses a gesture-opened window and a Blob URL', () => {
   assert.match(pdfFn, /outputWindow\.location\.replace\(blobUrl\)/);
   assert.match(source, /downloadPDF\(buildServicePDF\(\),[\s\S]*?outputWindow\)/);
   assert.match(source, /downloadPDF\(buildEdilePDF\(\),[\s\S]*?outputWindow\)/);
+});
+
+test('company website links are present in PDF header and footer', () => {
+  assert.match(source, /impresaedileabilart\.com/);
+  assert.match(source, /idraulicoservizi\.com/);
+  assert.match(source, /data-pdf-link="site1"/);
+  assert.match(source, /data-pdf-link="site2"/);
 });
 
 test('page geometry covers exact A4 CSS slices without exceeding document pages', () => {

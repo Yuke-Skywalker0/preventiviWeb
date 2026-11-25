@@ -13,25 +13,38 @@ function imageData(url){return new Promise(resolve=>{if(!url){resolve(null);retu
 function titleFrom(root){return text($(root,'.pdf-doc-type'))||'PREVENTIVO';}
 function metadata(root){const h=$(root,'.pdf-meta');return {number:text($(h,'strong')),date:text($(h,'span:last-child')).replace(/^DATA:\s*/,'')};}
 const logoPromise=imageData(new URL('assets/abilart-logo.png',document.baseURI).href);
+function addPdfLink(p,x,y,w,h,url){if(!url||!/^https?:|^mailto:|^tel:/i.test(url))return;try{p.link(x,y,Math.max(1,w),Math.max(2,h),{url});}catch{}}
 function createEngine(root,p,logo){
  const ctx={root,p,logo,title:titleFrom(root),meta:metadata(root),y:M.top,page:1};let clientCardTop=M.top;
  function header(){
   p.setPage(ctx.page);line(p,'blue');p.setLineWidth(.65);p.line(14,8,196,8);
   if(logo){try{p.addImage(logo,'PNG',14,11,24,17,'abilart-logo','FAST');}catch{}}
-  p.setFont('helvetica','bold');p.setFontSize(14);setColor(p,'navy');p.text('ABILART SRLS',42,15);
+  p.setFont('helvetica','bold');p.setFontSize(14);setColor(p,'navy');p.text('ABILART SRLS',42,15);addPdfLink(p,14,11,24,17,'https://impresaedileabilart.com/');
   p.setFont('helvetica','normal');p.setFontSize(7.2);setColor(p,'muted');p.text("SOLUZIONI ARTIGIANE D'ECCELLENZA",42,19.5);
   p.setFontSize(7);p.text('P. IVA / C.F. 10439280966 · Lissone (MB) · +39 320 429 5445',42,24);
+  addPdfLink(p,112,20.8,37,4.5,'tel:+393204295445');
+  addPdfLink(p,80,20.8,30,4.5,'https://www.google.com/maps/search/?api=1&query=Via%20Caprera%202%2C%2020851%20Lissone%20MB%2C%20Italia');
   p.text('impresaedileabilart.com · idraulicoservizi.it',42,28);
+  addPdfLink(p,42,25,57,4.5,'https://impresaedileabilart.com/');addPdfLink(p,101,25,48,4.5,'https://idraulicoservizi.it/');
   fill(p,'soft');line(p,'line');p.roundedRect(145,10,51,22,2,2,'FD');
   p.setFontSize(6.4);setColor(p,'muted');p.text('DOCUMENTO NUMERO',170.5,14.5,{align:'center'});
   p.setFont('helvetica','bold');p.setFontSize(9.2);setColor(p,'navy');p.text(ctx.meta.number||'—',170.5,19,{align:'center'});
   p.setFont('helvetica','normal');p.setFontSize(6.5);setColor(p,'muted');p.text('DATA: '+(ctx.meta.date||'—'),170.5,23,{align:'center'});
   line(p,'line');p.setLineWidth(.35);p.line(14,34,196,34);
   p.setFont('helvetica','bold');p.setFontSize(12.5);setColor(p,'navy');p.text(ctx.title.toUpperCase(),14,42);
+  if(ctx.page>1){fill(p,'pale');p.roundedRect(163,36.5,33,7,1.2,1.2,'F');p.setFont('helvetica','bold');p.setFontSize(6);setColor(p,'blue');p.text('CONTINUA · PAG. '+ctx.page,179.5,41.1,{align:'center'});}
  }
  function footer(){
   const n=p.getNumberOfPages();
-  for(let i=1;i<=n;i++){p.setPage(i);line(p,'line');p.setLineWidth(.35);p.line(14,284,196,284);p.setFont('helvetica','normal');p.setFontSize(6.6);setColor(p,'muted');p.text('T. +39 320 429 5445  |  abilart.impresaedile@gmail.com',14,289);p.text('© '+new Date().getFullYear()+' Abilart Srls  |  www.idraulicoservizi.it',110,289);p.text('Pagina '+i+' / '+n,196,289,{align:'right'});}
+  for(let i=1;i<=n;i++){
+   p.setPage(i);line(p,'line');p.setLineWidth(.35);p.line(14,284,196,284);
+   p.setFont('helvetica','normal');p.setFontSize(6.2);setColor(p,'muted');
+   p.text('T. +39 320 429 5445',14,289);addPdfLink(p,14,285.8,37,4.5,'tel:+393204295445');
+   p.text('abilart.impresaedile@gmail.com',53,289);addPdfLink(p,53,285.8,49,4.5,'mailto:abilart.impresaedile@gmail.com');
+   p.text('www.idraulicoservizi.it',107,289);addPdfLink(p,107,285.8,38,4.5,'https://idraulicoservizi.it/');
+   p.text('Mappa',148,289);addPdfLink(p,146,285.8,16,4.5,'https://www.google.com/maps/search/?api=1&query=Via%20Caprera%202%2C%2020851%20Lissone%20MB%2C%20Italia');
+   p.text('Pagina '+i+' / '+n,196,289,{align:'right'});
+  }
  }
  function newPage(){
   p.addPage();ctx.page=p.getNumberOfPages();ctx.y=M.top;header();
@@ -44,8 +57,8 @@ function createEngine(root,p,logo){
   p.setFont('helvetica','bold');p.setFontSize(8.2);setColor(p,'navy');p.text(label.toUpperCase(),18,ctx.y+6.1);ctx.y+=12;
  }
  function labelValue(label,value,x,y,w){
-  p.setFont('helvetica','normal');p.setFontSize(6.2);setColor(p,'muted');p.text(label.toUpperCase(),x+3,y+4);
-  p.setFont('helvetica','bold');p.setFontSize(8.2);setColor(p,'ink');
+  p.setFont('helvetica','normal');p.setFontSize(6.5);setColor(p,'muted');p.text(label.toUpperCase(),x+3,y+4);
+  p.setFont('helvetica','bold');p.setFontSize(8.4);setColor(p,'ink');
   const lines=p.splitTextToSize(value||'—',w-6);p.text(lines,x+3,y+9.2,{lineHeightFactor:1.2});
   return Math.max(15,lines.length*3.8+11);
  }
@@ -68,7 +81,7 @@ function createEngine(root,p,logo){
   const fields=[];
   [...el.querySelectorAll('tr')].forEach(tr=>[...tr.children].forEach(cell=>{
    const label=text($(cell,'.pdf-label'));
-   fields.push({label,value:text(cell).replace(label,'').trim()||'—'});
+   const value=text(cell).replace(label,'').trim()||'—';fields.push({label,value,anchors:[...cell.querySelectorAll('a')].map(a=>({text:text(a),href:a.getAttribute('href')}))});
   }));
   const w=112,cw=w/2,rows=[];
   fields.forEach((f,i)=>{
@@ -85,6 +98,7 @@ function createEngine(root,p,logo){
     const f=fields[row*2+col];if(!f)continue;const x=14+col*cw;
     if(col){line(p,'line');p.line(x,rowY,x,rowY+rh);}
     labelValue(f.label,f.value,x,rowY,cw,rh);
+    if(f.anchors?.length){p.setFont('helvetica','bold');p.setFontSize(8.4);const lines=p.splitTextToSize(f.value,cw-6);f.anchors.forEach(a=>{for(let li=0;li<lines.length;li++){const at=lines[li].indexOf(a.text);if(at>=0){addPdfLink(p,x+3+p.getTextWidth(lines[li].slice(0,at)),rowY+6.5+li*3.8,p.getTextWidth(a.text),4.5,a.href);break;}}});}
    }
    rowY+=rh;
   });
@@ -92,18 +106,19 @@ function createEngine(root,p,logo){
  }
  function inlineRuns(node,bold=false,italic=false,underline=false,color=null){
   const out=[];
-  function walk(n,b,i,u,c){
-   if(n.nodeType===3){if(n.nodeValue)out.push({t:n.nodeValue,b,i,u,c});return;}
+  function walk(n,b,i,u,c,href=null){
+   if(n.nodeType===3){if(n.nodeValue)out.push({t:n.nodeValue,b,i,u,c,href});return;}
    if(n.nodeType!==1)return;
    const tag=n.tagName.toLowerCase(),style=n.getAttribute('style')||'';
    const cm=style.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i),wm=style.match(/font-weight\s*:\s*([^;]+)/i),um=style.match(/text-decoration\s*:\s*([^;]+)/i);
    const nextColor=cm?cm[1].trim():c;
    const nextBold=b||(tag==='strong'||tag==='b'||!!(wm&&/(bold|[6-9]00)/i.test(wm[1])));
    const nextUnder=u||(tag==='u'||!!(um&&/underline/i.test(um[1])));
-   if(tag==='br'){out.push({t:'\n',b:nextBold,i,u:nextUnder,c:nextColor});return;}
-   [...n.childNodes].forEach(ch=>walk(ch,nextBold,i||(tag==='em'||tag==='i'),nextUnder,nextColor));
+   const nextHref=tag==='a'?(n.getAttribute('href')||href):href;
+   if(tag==='br'){out.push({t:'\n',b:nextBold,i,u:nextUnder,c:nextColor,href:nextHref});return;}
+   [...n.childNodes].forEach(ch=>walk(ch,nextBold,i||(tag==='em'||tag==='i'),nextUnder,nextColor,nextHref));
   }
-  walk(node,bold,italic,underline,color);return out;
+  walk(node,bold,italic,underline,color,null);return out;
  }
  function drawRichLine(runs,x,y,w,size,indent=0){
   let lineRuns=[],lineWidth=0,lines=0,base=x+indent;const lineH=size*.48;
@@ -115,7 +130,7 @@ function createEngine(root,p,logo){
   function renderLine(){
    if(y+lineH+2>M.bottom){newPage();y=ctx.y;base=x+indent;}
    if(!lineRuns.length){y+=lineH;lines++;return;}let xx=base;
-   lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);applyColor(r.c);p.text(r.t,xx,y);if(r.u){applyColor(r.c);p.setLineWidth(.15);p.line(xx,y+.6,xx+p.getTextWidth(r.t),y+.6);}xx+=p.getTextWidth(r.t);});
+   lineRuns.forEach(r=>{p.setFont('helvetica',r.b?(r.i?'bolditalic':'bold'):(r.i?'italic':'normal'));p.setFontSize(size);applyColor(r.c);p.text(r.t,xx,y);if(r.href)addPdfLink(p,xx,y-size*.42,p.getTextWidth(r.t),lineH+1,r.href);if(r.u||r.href){applyColor(r.c);p.setLineWidth(.15);p.line(xx,y+.6,xx+p.getTextWidth(r.t),y+.6);}xx+=p.getTextWidth(r.t);});
    y+=lineH;lines++;lineRuns=[];lineWidth=0;
   }
   runs.forEach(run=>{const chunks=run.t.replace(/\r/g,'').split(/(\s+|\n)/).filter(Boolean);chunks.forEach(word=>{
@@ -127,14 +142,14 @@ function createEngine(root,p,logo){
     let fragment='';
     [...word].forEach(ch=>{
      const test=fragment+ch;
-     if(p.getTextWidth(test)>maxW&&fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth=p.getTextWidth(fragment);renderLine();fragment=ch;}
+     if(p.getTextWidth(test)>maxW&&fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c,href:run.href});lineWidth=p.getTextWidth(fragment);renderLine();fragment=ch;}
      else fragment=test;
     });
-    if(fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth=p.getTextWidth(fragment);renderLine();}
+    if(fragment){lineRuns.push({t:fragment,b:run.b,i:run.i,u:run.u,c:run.c,href:run.href});lineWidth=p.getTextWidth(fragment);renderLine();}
     return;
    }
    if(lineWidth+ww>maxW&&lineRuns.length)renderLine();
-   lineRuns.push({t:word,b:run.b,i:run.i,u:run.u,c:run.c});lineWidth+=ww;
+   lineRuns.push({t:word,b:run.b,i:run.i,u:run.u,c:run.c,href:run.href});lineWidth+=ww+(word.trim()?0:.55);
   });});
   if(lineRuns.length)renderLine();return y;
  }
@@ -213,7 +228,7 @@ function createEngine(root,p,logo){
   cards.forEach((card,i)=>{let x=14+i*(w+4);fill(p,'soft');line(p,'line');p.roundedRect(x,ctx.y,w,h,1.2,1.2,'FD');p.setFont('helvetica','normal');p.setFontSize(5.8);setColor(p,'muted');p.text(text($(card,'span')).toUpperCase(),x+3,ctx.y+5);p.setFont('helvetica','bold');p.setFontSize(7);setColor(p,'ink');p.text(p.splitTextToSize(text($(card,'strong')),w-6).slice(0,2),x+3,ctx.y+10.5);});ctx.y+=h+4;
  }
  function renderTerms(el){
-  const items=[...el.querySelectorAll('li')];items.forEach((li,i)=>{const runs=inlineRuns(li);const lead=[{t:(i+1)+'. ',b:true,i:false,u:false},...runs];if(ensure(i===0?20:12,5))band('Condizioni generali · continua');ctx.y=drawRichLine(lead,18,ctx.y,176,7.4);ctx.y+=2.4;});
+  const items=[...el.querySelectorAll('li')];items.forEach((li,i)=>{const runs=inlineRuns(li);const lead=[{t:(i+1)+'. ',b:true,i:false,u:false},...runs];if(ensure(i===0?20:12,5))band('Condizioni generali · continua');ctx.y=drawRichLine(lead,18,ctx.y,176,8.0);ctx.y+=2.8;});
  }
  function renderSignatures(el){
   const cards=[...el.querySelectorAll('.pdf-signature')];const x0=14,w=89,gap=4,h=36;ensure(h+4,0);

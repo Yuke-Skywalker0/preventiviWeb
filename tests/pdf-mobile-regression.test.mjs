@@ -60,9 +60,48 @@ test('PDF preserves editor bold, underline, bullet lists and selected text color
   assert.match(html, /data-cmd="insertUnorderedList"/);
 });
 
-test('rich editor block paragraphs retain line breaks in the PDF', () => {
+test('rich editor block paragraphs and escaped newline tokens render as actual line breaks', () => {
   assert.match(renderer, /isBlock=\['div','p','h1','h2','h3','h4','h5','h6'\]/);
-  assert.match(renderer, /out\.push\(\{t:'\\\\n'/);
+  assert.match(renderer, /replace\(\/\\\\n\/g,'\\n'\)/);
+  assert.match(renderer, /out\.push\(\{t:'\\n'/);
+  assert.match(renderer, /const lineH=size\*\.44/);
+});
+
+test('plain-text editor newlines are not collapsed before PDF layout', () => {
+  assert.match(renderer, /drawRichLine\(inlineRuns\(el\),x,ctx\.y,w,size\)/);
+});
+
+test('editor sanitizer retains safe inline italic styles', () => {
+  assert.match(app, /font-style/);
+  assert.match(renderer, /nextItalic=i\|\|\(tag==='em'\|\|tag==='i'\|\|/);
+});
+
+test('client address link is preserved as a full clickable Google Maps area', () => {
+  assert.match(renderer, /const isAddress=/);
+  assert.match(renderer, /addPdfLink\(p,x\+2,rowY\+6\.5,cw-4/);
+  assert.match(renderer, /google\.com/);
+  assert.match(renderer, /maps/i);
+});
+
+test('logo uses its natural image ratio and never forces a distorted rectangle', () => {
+  assert.match(renderer, /img\.naturalWidth/);
+  assert.match(renderer, /img\.naturalHeight/);
+  assert.match(renderer, /logoH\*\(logo\.width\/Math\.max\(1,logo\.height\)\)/);
+  assert.match(renderer, /p\.addImage\(logo\.data,'PNG',14,11,logoW,logoH/);
+});
+
+test('economic recap is wider and more compact; signatures use a reduced card height', () => {
+  assert.match(renderer, /x=128,w=68/);
+  assert.match(renderer, /tr\.classList\.contains\('pdf-total'\)\?11\.5/);
+  assert.match(renderer, /h=30\.5/);
+  assert.match(renderer, /ctx\.y\+=h\+2\.5/);
+});
+
+test('client telephone and email links remain separate and map links are carried from anchors', () => {
+  assert.match(renderer, /f\.anchors\.forEach\(a=>/);
+  assert.match(renderer, /a\.href/);
+  assert.match(renderer, /tel:\+393204295445/);
+  assert.match(renderer, /mailto:abilart\.impresaedile@gmail\.com/);
 });
 
 test('native renderer paginates content and uses A4 dimensions', () => {
@@ -92,7 +131,7 @@ test('client card heights follow wrapped values instead of fixed row sizing', ()
 
 test('description panel and economic recap use measured content heights', () => {
   assert.doesNotMatch(renderer, /Math\.min\(estimated\+12,90\)/);
-  assert.match(renderer, /const actual=yy-start\+2;return actual/);
+  assert.match(renderer, /const estimate=6\.5\+rowHeights\.reduce/);
   assert.match(renderer, /flowFrame=\{x,w,fill:'soft',stroke:'line'/);
 });
 
@@ -115,7 +154,7 @@ test('PDF exposes clickable company, client, email, phone and map links', () => 
 
 test('PDF visual hierarchy uses clean headers, continuous frames and a safe footer', () => {
   assert.doesNotMatch(renderer, /CONTINUA · PAG\.|DOCUMENTO IN CONTINUAZIONE|Condizioni generali · continua/);
-  assert.match(renderer, /drawRichLine\(lead,18,ctx\.y,172,8\.0\)/);
+  assert.match(renderer, /drawRichLine\(lead,18,ctx\.y,172,7\.7\)/);
   assert.match(renderer, /flowFrame/);
   assert.match(renderer, /from=f\.lastY\?\?top/);
   assert.match(renderer, /bottom:269,width:182/);
@@ -140,11 +179,11 @@ test('footer contains both independent clickable company websites', () => {
 });
 
 test('first-page client and economic summary have stronger spacing and typography', () => {
-  assert.match(renderer, /const w=116,cw=w\/2,rows=\[\]/);
+  assert.match(renderer, /const w=110,cw=w\/2,rows=\[\]/);
   assert.match(renderer, /p\.setFontSize\(9\.3\)/);
-  assert.match(renderer, /const rows=\[\.\.\.el\.querySelectorAll\('tr'\)\],x=134,w=62/);
+  assert.match(renderer, /const rows=\[\.\.\.el\.querySelectorAll\('tr'\)\],x=128,w=68/);
   assert.match(renderer, /if\(\/\^IVA\$\/i\.test\(label\)\)/);
-  assert.match(renderer, /anchors\.map\(a=>a\.text\)\.join\('\\n'\)/);
+  assert.match(renderer, /anchors\.map\(a=>a\.text\)\.join\('  ·  '\)/);
 });
 
 test('service and renovation terms are condensed without dropping core clauses', () => {

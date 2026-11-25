@@ -56,7 +56,7 @@ function cleanEditorHtml(editor) {
         for(const declaration of value.split(';')){
           const [property,...parts]=declaration.split(':');
           const prop=property?.trim().toLowerCase(), val=parts.join(':').trim();
-          if(['color','font-weight','text-decoration','text-align'].includes(prop)&&
+          if(['color','font-weight','font-style','text-decoration','text-align'].includes(prop)&&
              !/(url\s*\(|expression\s*\(|javascript:|position:|display:|\bimportant\b)/i.test(val)){
             safe.push(prop+':'+val);
           }

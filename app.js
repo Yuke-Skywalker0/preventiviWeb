@@ -57,7 +57,7 @@ function cleanEditorHtml(editor) {
           const [property,...parts]=declaration.split(':');
           const prop=property?.trim().toLowerCase(), val=parts.join(':').trim();
           if(['color','font-weight','text-decoration','text-align'].includes(prop)&&
-             !/(url\\s*\\(|expression\\s*\\(|javascript:|position:|display:|\\bimportant\\b)/i.test(val)){
+             !/(url\s*\(|expression\s*\(|javascript:|position:|display:|\bimportant\b)/i.test(val)){
             safe.push(prop+':'+val);
           }
         }
@@ -610,7 +610,7 @@ async function downloadPDF(html, filename, outputWindow=null){
 function quoteBusinessCheck(form){
  const service=form.id==='service-form',ids=service?{base:'s-price',iva:'s-iva',deposit:'s-deposit',discount:null,validity:'s-validity',date:'s-date'}:{base:'e-price',iva:'e-iva',deposit:'e-deposit',discount:'e-discount',validity:'e-validity',date:'e-date'};
  const v=id=>document.getElementById(id).value.trim(),n=id=>numberIT(v(id)),pattern=/^-?(?:\d+|\d{1,3}(?:\.\d{3})+)(?:[,.]\d{1,2})?$/;
- for(const id of [ids.base,ids.iva,ids.deposit,ids.discount].filter(Boolean))if(v(id)&&!pattern.test(v(id).replace(/[€\\s]/g,''))){alert('Controlla gli importi: numeri validi e massimo due decimali.');return false;}
+ for(const id of [ids.base,ids.iva,ids.deposit,ids.discount].filter(Boolean))if(v(id)&&!pattern.test(v(id).replace(/[€\s]/g,''))){alert('Controlla gli importi: numeri validi e massimo due decimali.');return false;}
  const base=n(ids.base),iva=n(ids.iva),dep=n(ids.deposit),discount=ids.discount?n(ids.discount):0;
  if(!v(ids.base)||base<0||iva<0||iva>100||dep<0||discount<0||discount>base){alert('Imponibile, IVA, sconto e acconto non sono coerenti.');return false;}
  if(dep>(base-discount)*(1+iva/100)+.01){alert('L’acconto non può superare il totale.');return false;}

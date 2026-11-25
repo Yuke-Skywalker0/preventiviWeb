@@ -100,12 +100,44 @@ test('PDF visual hierarchy uses clean headers, continuous frames and a safe foot
   assert.doesNotMatch(renderer, /CONTINUA · PAG\.|DOCUMENTO IN CONTINUAZIONE|Condizioni generali · continua/);
   assert.match(renderer, /drawRichLine\(lead,18,ctx\.y,172,8\.0\)/);
   assert.match(renderer, /flowFrame/);
-  assert.match(renderer, /from=Math\.max\(f\.lastY\?\?top,top\)/);
+  assert.match(renderer, /from=f\.lastY\?\?top/);
   assert.match(renderer, /bottom:269,width:182/);
   assert.match(renderer, /p\.line\(14,276,196,276\)/);
   assert.match(renderer, /p\.text\('Pagina '\+i\+' \/ '\+n,196,283/);
   assert.match(renderer, /pale:\[247,250,252\]/);
-  assert.match(renderer, /p\.setFontSize\(8\.4\)/);
+  assert.match(renderer, /p\.setFontSize\(9\.3\)/);
+});
+
+test('PDF description and terms panel fill remains continuous between paragraphs', () => {
+  assert.match(renderer, /from=f\.lastY\?\?top/);
+  assert.doesNotMatch(renderer, /from=Math\.max\(f\.lastY\?\?top,top\)/);
+  assert.match(renderer, /f\.lastY=bottom/);
+});
+
+test('footer contains both independent clickable company websites', () => {
+  assert.match(renderer, /impresaedileabilart\.com/);
+  assert.match(renderer, /https:\/\/impresaedileabilart\.com\//);
+  assert.match(renderer, /idraulicoservizi\.it/);
+  assert.match(renderer, /https:\/\/idraulicoservizi\.it\//);
+  assert.match(renderer, /p\.text\('Mappa',170,283\)/);
+});
+
+test('first-page client and economic summary have stronger spacing and typography', () => {
+  assert.match(renderer, /const w=116,cw=w\/2,rows=\[\]/);
+  assert.match(renderer, /p\.setFontSize\(9\.3\)/);
+  assert.match(renderer, /const rows=\[\.\.\.el\.querySelectorAll\('tr'\)\],x=134,w=62/);
+  assert.match(renderer, /if\(\/\^IVA\$\/i\.test\(label\)\)/);
+  assert.match(renderer, /anchors\.map\(a=>a\.text\)\.join\('\\n'\)/);
+});
+
+test('service and renovation terms are condensed without dropping core clauses', () => {
+  assert.match(html, /Oggetto e perimetro/);
+  assert.match(html, /Varianti e imprevisti/);
+  assert.match(html, /Responsabilità e garanzie/);
+  assert.match(html, /Dati personali/);
+  assert.match(html, /Stato dei luoghi/);
+  assert.match(html, /Accettazione/);
+  assert.ok((html.match(/L’offerta vale per il periodo indicato/g)||[]).length >= 1);
 });
 
 test('economy avoids duplicate net taxable row without discount and signature uses acceptance date', () => {
